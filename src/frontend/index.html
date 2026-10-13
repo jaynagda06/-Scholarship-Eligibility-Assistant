@@ -6,10 +6,11 @@
     <title>Scholarship Eligibility Assistant - Control Center</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.development.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.development.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.26.5/babel.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css" rel="stylesheet" />
     <style>
       :root {
         --bg-primary: #f8fafc;
@@ -48,15 +49,52 @@
       }
       
       body {
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+        font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
           'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
           sans-serif;
-        background: var(--bg-primary);
+        background: radial-gradient(1200px 600px at 80% -10%, #eef2ff 0%, transparent 50%), var(--bg-primary);
         min-height: 100vh;
         color: var(--text-primary);
-        line-height: 1.6;
+        line-height: 1.7;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
+        overflow-x: hidden;
+        cursor: none;
+      }
+      .cursor {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: rgba(15, 23, 42, 0.85);
+        pointer-events: none;
+        z-index: 10000;
+        mix-blend-mode: difference;
+        transform: translate(-50%, -50%);
+        transition: width 0.18s ease, height 0.18s ease, background 0.18s ease, border 0.18s ease;
+      }
+      .cursor.follower {
+        width: 38px;
+        height: 38px;
+        background: transparent;
+        border: 1px solid rgba(15, 23, 42, 0.25);
+        mix-blend-mode: normal;
+        transition: width 0.25s ease, height 0.25s ease, transform 0.1s ease, border 0.25s ease;
+      }
+      .cursor.hover {
+        width: 24px;
+        height: 24px;
+        background: rgba(37, 99, 235, 0.9);
+      }
+      .cursor.follower.hover {
+        width: 64px;
+        height: 64px;
+        border-color: rgba(37, 99, 235, 0.5);
+      }
+      @media (max-width: 768px) {
+        body, .cursor, .cursor.follower { cursor: auto; }
       }
       
       .app {
@@ -629,10 +667,12 @@
     </style>
   </head>
   <body>
+    <div class="cursor"></div>
+    <div class="cursor follower"></div>
     <div id="root"></div>
 
     <script type="text/babel">
-      const { useState, useEffect } = React;
+      const { useState, useEffect, useRef } = React;
 
       function App() {
         const [students, setStudents] = useState([]);
@@ -642,6 +682,7 @@
         const [loading, setLoading] = useState(false);
         const [error, setError] = useState('');
         const [success, setSuccess] = useState('');
+        const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
         
         const [newStudent, setNewStudent] = useState({
           phone: '',
@@ -666,7 +707,39 @@
 
         useEffect(() => {
           fetchData();
+          
+          const handleMouseMove = (e) => {
+            setMousePos({ x: e.clientX, y: e.clientY });
+          };
+          
+          window.addEventListener('mousemove', handleMouseMove);
+          return () => window.removeEventListener('mousemove', handleMouseMove);
         }, []);
+
+        useEffect(() => {
+          const cursor = document.querySelector('.cursor');
+          const follower = document.querySelector('.cursor.follower');
+          if (cursor && follower) {
+            cursor.style.transform = `translate(${mousePos.x}px, ${mousePos.y}px)`;
+            follower.style.transform = `translate(${mousePos.x}px, ${mousePos.y}px)`;
+          }
+          
+          const interactables = document.querySelectorAll('button, a, input, select, textarea, .card, .stat-card');
+          interactables.forEach(el => {
+            el.addEventListener('mouseenter', () => {
+              if (cursor && follower) {
+                cursor.classList.add('hover');
+                follower.classList.add('hover');
+              }
+            });
+            el.addEventListener('mouseleave', () => {
+              if (cursor && follower) {
+                cursor.classList.remove('hover');
+                follower.classList.remove('hover');
+              }
+            });
+          });
+        }, [mousePos]);
 
         const fetchData = async () => {
           try {
