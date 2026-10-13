@@ -1,1 +1,2 @@
-export default function () {}
+import { defineConfig } from 'vite'
+export default defineConfig({})
