@@ -1,0 +1,5 @@
+name: scholarship-assistant
+version: 0.1.0
+description: "Scholarship Eligibility Assistant - AI-driven matching platform"
+scripts:
+  dev: "cd src/backend && pip install fastapi uvicorn --break-system-packages && python -m uvicorn app.main:app"
