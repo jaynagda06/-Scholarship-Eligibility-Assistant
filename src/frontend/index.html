@@ -647,13 +647,15 @@
       }
 
       /* ---------------------------------------------------------------
-         Masked word rise — display headings only
+         Masked word sweep - display headings only
       ---------------------------------------------------------------- */
 
-      /* Each word gets its own clipping box. The padding is clip room for
-         descenders, punctuation and the tight negative tracking's glyph
-         overhang; the matching negative margin cancels it again, so the line
-         box, the settled baseline and the line breaks never move. */
+      /* Each word gets its own clipping box and slides in from the left. The
+         padding is clip room for the tight negative tracking's glyph overhang,
+         descenders and punctuation; the matching negative margin cancels it
+         again, so the line box, the settled baseline and the line breaks never
+         move. The start offset includes that padding so the word begins fully
+         outside the clip box instead of leaving a sliver in it. */
       .word-mask {
         display: inline-block;
         overflow: hidden;
@@ -664,7 +666,7 @@
 
       .word-mask > span {
         display: inline-block;
-        transform: translateY(calc(100% + var(--mask-pad)));
+        transform: translateX(calc(-101% - var(--mask-x)));
         opacity: 0;
       }
 
@@ -684,11 +686,11 @@
 
       @keyframes word-rise {
         from {
-          transform: translateY(calc(100% + var(--mask-pad)));
+          transform: translateX(calc(-101% - var(--mask-x)));
           opacity: 0;
         }
         to {
-          transform: translateY(0);
+          transform: translateX(0);
           opacity: 1;
         }
       }
@@ -2180,10 +2182,13 @@
           return () => io.disconnect();
         }, [students, scholarships, recommendations]);
 
-        // Masked word rise: each display heading plays once when it enters the
-        // viewport, then replays on hover. The hero is left to the loaded state
-        // below so it never animates behind the preloader.
+        // Masked word sweep: each display heading plays once when it enters the
+        // viewport, then replays on hover. Nothing is observed until the
+        // preloader has lifted, so a heading that is already on screen at mount
+        // (tall window, restored scroll position) cannot play behind the
+        // curtain and be finished before it is ever seen.
         useEffect(() => {
+          if (!loaded) return;
           const heads = Array.from(document.querySelectorAll('.split-head'));
           if (!heads.length) return;
 
@@ -2198,46 +2203,56 @@
             el.classList.add('is-in');
           };
 
-          const io = new IntersectionObserver(
-            (entries) => {
-              entries.forEach((entry) => {
-                if (!entry.isIntersecting) return;
-                entry.target.classList.add('is-in');
-                io.unobserve(entry.target);
-              });
-            },
-            { threshold: 0.35 }
-          );
+          // One observer for the whole page, built once. Hover only toggles the
+          // class, so it can never stack a second observer or listener.
+          const io = 'IntersectionObserver' in window
+            ? new IntersectionObserver(
+                (entries) => {
+                  entries.forEach((entry) => {
+                    if (!entry.isIntersecting) return;
+                    entry.target.classList.add('is-in');
+                    io.unobserve(entry.target);
+                  });
+                },
+                { threshold: 0.2, rootMargin: '0px 0px -10% 0px' }
+              )
+            : null;
 
           const cleanups = [];
 
           heads.forEach((el) => {
-            if (el.dataset.split !== 'hero') io.observe(el);
-
             const words = el.querySelectorAll('.word-mask');
-            if (!words.length) return;
-            const last = words[words.length - 1].firstElementChild;
+            if (words.length) {
+              const last = words[words.length - 1].firstElementChild;
 
-            // Hover replays, but only once the first play has settled.
-            const onEnter = () => {
-              if (el.dataset.ready === 'true') replay(el);
-            };
-            const onEnd = () => {
-              el.dataset.ready = 'true';
-            };
-            el.addEventListener('mouseenter', onEnter);
-            last.addEventListener('animationend', onEnd);
-            cleanups.push(() => {
-              el.removeEventListener('mouseenter', onEnter);
-              last.removeEventListener('animationend', onEnd);
-            });
+              // Hover replays, but only once the first play has settled.
+              const onEnter = () => {
+                if (el.dataset.ready === 'true') replay(el);
+              };
+              const onEnd = () => {
+                el.dataset.ready = 'true';
+              };
+              el.addEventListener('mouseenter', onEnter);
+              last.addEventListener('animationend', onEnd);
+              cleanups.push(() => {
+                el.removeEventListener('mouseenter', onEnter);
+                last.removeEventListener('animationend', onEnd);
+              });
+            }
+
+            // The hero waits for `loaded`; every other heading is observed and
+            // plays as it scrolls in. The observer's first callback also covers
+            // anything already on screen at mount.
+            if (el.dataset.split === 'hero') return;
+            if (io) io.observe(el);
+            else el.classList.add('is-in');
           });
 
           return () => {
-            io.disconnect();
+            if (io) io.disconnect();
             cleanups.forEach((fn) => fn());
           };
-        }, []);
+        }, [loaded]);
 
         // The hero heading starts when the preloader curtain lifts.
         useEffect(() => {
