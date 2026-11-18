@@ -242,15 +242,26 @@
         z-index: 300;
         pointer-events: none;
         border-radius: 50%;
-        mix-blend-mode: difference;
         will-change: transform;
+      }
+
+      /* The cursor carries the surface it is over so it stays visible on both
+         the light page and the dark index band. */
+      .cursor[data-surface="light"],
+      .cursor-ring[data-surface="light"] {
+        --fg: var(--ink);
+      }
+
+      .cursor[data-surface="dark"],
+      .cursor-ring[data-surface="dark"] {
+        --fg: var(--paper);
       }
 
       .cursor {
         width: 7px;
         height: 7px;
         margin: -3.5px 0 0 -3.5px;
-        background: #f2f0f0;
+        background: var(--fg);
         transition: width 0.25s var(--ease), height 0.25s var(--ease), margin 0.25s var(--ease),
           opacity 0.3s var(--ease);
       }
@@ -259,7 +270,7 @@
         width: 34px;
         height: 34px;
         margin: -17px 0 0 -17px;
-        border: 1px solid rgba(242, 240, 240, 0.65);
+        border: 1px solid color-mix(in srgb, var(--fg) 65%, transparent);
         transition: width 0.4s var(--ease), height 0.4s var(--ease), margin 0.4s var(--ease),
           opacity 0.3s var(--ease), border-color 0.4s var(--ease);
       }
@@ -274,7 +285,7 @@
         width: 62px;
         height: 62px;
         margin: -31px 0 0 -31px;
-        border-color: rgba(242, 240, 240, 0.35);
+        border-color: color-mix(in srgb, var(--fg) 35%, transparent);
       }
 
       body.has-cursor,
@@ -316,7 +327,9 @@
         top: 0;
         height: 100%;
         width: 1px;
-        background: #f2f0f0;
+        /* A blending overlay, not a normal hairline: it must stay visible over
+           both the light page and the dark index band. */
+        background: var(--paper);
         opacity: 0.07;
         mix-blend-mode: difference;
       }
@@ -348,8 +361,7 @@
         left: 0;
         right: 0;
         z-index: 20;
-        color: #f2f0f0;
-        mix-blend-mode: difference;
+        color: var(--fg);
         pointer-events: none;
       }
 
@@ -360,7 +372,7 @@
         justify-content: space-between;
         gap: 1rem;
         padding: 0.85rem var(--pad);
-        border-bottom: 1px solid rgba(242, 240, 240, 0.18);
+        border-bottom: 1px solid var(--line);
         pointer-events: auto;
       }
 
@@ -1594,6 +1606,23 @@
          Fixed chrome: section nav + invert
       ---------------------------------------------------------------- */
 
+      /* The header, section nav and invert button float above sections that
+         alternate light and dark, so each carries the surface it overlaps and
+         flips its own tokens to match. */
+      .site-header[data-surface="light"],
+      .section-nav[data-surface="light"],
+      .invert-btn[data-surface="light"] {
+        --fg: var(--ink);
+        --line: rgba(15, 15, 15, 0.18);
+      }
+
+      .site-header[data-surface="dark"],
+      .section-nav[data-surface="dark"],
+      .invert-btn[data-surface="dark"] {
+        --fg: var(--paper);
+        --line: rgba(242, 240, 240, 0.18);
+      }
+
       .section-nav {
         position: fixed;
         right: var(--pad);
@@ -1603,8 +1632,7 @@
         flex-direction: column;
         align-items: flex-end;
         gap: 0.4rem;
-        color: #f2f0f0;
-        mix-blend-mode: difference;
+        color: var(--fg);
       }
 
       .section-nav a {
@@ -1646,8 +1674,7 @@
         display: flex;
         align-items: center;
         gap: 0.5rem;
-        color: #f2f0f0;
-        mix-blend-mode: difference;
+        color: var(--fg);
         font-size: 0.625rem;
         font-weight: 500;
         letter-spacing: 0.1em;
@@ -1797,6 +1824,23 @@
 
       const pad2 = (n) => String(n).padStart(2, '0');
 
+      // Resolve the real surface behind a viewport row. A .section--dark band is
+      // dark in the light theme but light in the inverted theme, so its class
+      // alone is not enough. The invert attribute is the single source of truth.
+      const surfaceAtY = (y) => {
+        const inverted = document.documentElement.dataset.invert === 'true';
+        const hosts = document.querySelectorAll('.section, .method');
+        for (let i = 0; i < hosts.length; i++) {
+          const rect = hosts[i].getBoundingClientRect();
+          if (y >= rect.top && y < rect.bottom) {
+            return hosts[i].classList.contains('section--dark') !== inverted
+              ? 'dark'
+              : 'light';
+          }
+        }
+        return inverted ? 'dark' : 'light';
+      };
+
       function useInView(threshold) {
         const ref = useRef(null);
         const [inView, setInView] = useState(false);
@@ -1868,6 +1912,7 @@
         const [loaded, setLoaded] = useState(false);
         const [activeSection, setActiveSection] = useState('overview');
         const [inverted, setInverted] = useState(false);
+        const [surface, setSurface] = useState({ top: 'light', bottom: 'light' });
         const [openPanel, setOpenPanel] = useState('student');
 
         const [newStudent, setNewStudent] = useState({
@@ -1942,10 +1987,17 @@
             dot.style.transform = 'translate3d(' + mx + 'px,' + my + 'px,0)';
           };
 
+          let lastSurface = '';
           const loop = () => {
             rx += (mx - rx) * 0.16;
             ry += (my - ry) * 0.16;
             ring.style.transform = 'translate3d(' + rx + 'px,' + ry + 'px,0)';
+            const surface = surfaceAtY(my);
+            if (surface !== lastSurface) {
+              lastSurface = surface;
+              dot.dataset.surface = surface;
+              ring.dataset.surface = surface;
+            }
             frame = requestAnimationFrame(loop);
           };
 
@@ -2015,6 +2067,31 @@
           els.forEach((el) => io.observe(el));
           return () => io.disconnect();
         }, []);
+
+        // The header and the bottom bar can sit over different sections, so
+        // track the surface under each one and let their tokens flip.
+        useEffect(() => {
+          let frame = 0;
+          const read = () => {
+            frame = 0;
+            const top = surfaceAtY(24);
+            const bottom = surfaceAtY(window.innerHeight - 24);
+            setSurface((prev) =>
+              prev.top === top && prev.bottom === bottom ? prev : { top, bottom }
+            );
+          };
+          const onScroll = () => {
+            if (!frame) frame = requestAnimationFrame(read);
+          };
+          read();
+          window.addEventListener('scroll', onScroll, { passive: true });
+          window.addEventListener('resize', onScroll);
+          return () => {
+            cancelAnimationFrame(frame);
+            window.removeEventListener('scroll', onScroll);
+            window.removeEventListener('resize', onScroll);
+          };
+        }, [inverted]);
 
         // Reveal anything with [data-reveal] as it enters the viewport.
         useEffect(() => {
@@ -2203,7 +2280,7 @@
 
         return (
           <div className={'app' + (loaded ? ' is-loaded' : '')}>
-            <header className="site-header">
+            <header className="site-header" data-surface={surface.top}>
               <div className="header-bar">
                 <a
                   className="logo"
@@ -2900,7 +2977,7 @@
               </div>
             </footer>
 
-            <nav className="section-nav" aria-label="Section navigation">
+            <nav className="section-nav" data-surface={surface.bottom} aria-label="Section navigation">
               {SECTIONS.map((s) => (
                 <a
                   key={s.id}
@@ -2919,6 +2996,7 @@
             <button
               type="button"
               className="invert-btn"
+              data-surface={surface.bottom}
               onClick={toggleInvert}
               aria-pressed={inverted}
             >
