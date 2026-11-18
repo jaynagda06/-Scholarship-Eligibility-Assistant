@@ -1801,6 +1801,185 @@
           opacity: 1;
         }
       }
+
+      /* ---------------------------------------------------------------
+         Document reader
+      ---------------------------------------------------------------- */
+
+      .doc-reader {
+        margin-bottom: 0;
+      }
+
+      .doc-reader-label {
+        font-size: 0.625rem;
+        font-weight: 500;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .doc-reader-drop {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: clamp(0.75rem, 1.4vw, 1.25rem);
+        padding: 0.9rem 1.1rem;
+        border: 1px solid var(--line);
+        border-radius: 0;
+        background: transparent;
+        transition: border-color 0.4s var(--ease);
+      }
+
+      .doc-reader-drop:hover,
+      .doc-reader-drop:focus-within {
+        border-color: var(--line-strong);
+      }
+
+      .doc-reader-drop.is-over {
+        border-color: var(--fg);
+      }
+
+      .doc-reader-lead {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        min-width: 0;
+      }
+
+      .doc-reader-lead svg {
+        width: 15px;
+        height: 15px;
+        flex-shrink: 0;
+        color: var(--muted);
+      }
+
+      .doc-reader-file {
+        font-size: 0.9375rem;
+        line-height: 1.4;
+        letter-spacing: -0.005em;
+        color: var(--muted);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .doc-reader.has-file .doc-reader-file {
+        color: var(--fg);
+      }
+
+      .doc-reader-actions {
+        display: flex;
+        align-items: center;
+        gap: clamp(0.75rem, 1.4vw, 1.25rem);
+        margin-left: auto;
+      }
+
+      .doc-reader button:focus-visible {
+        outline: 1px solid var(--fg);
+        outline-offset: 4px;
+      }
+
+      .doc-reader-input {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      .doc-reader-note,
+      .doc-reader-status,
+      .doc-reader-extras {
+        font-size: 0.75rem;
+        line-height: 1.4;
+        letter-spacing: -0.005em;
+        color: var(--muted);
+      }
+
+      .doc-reader-status {
+        min-height: 1.05rem;
+      }
+
+      .doc-reader-status[data-state="done"],
+      .doc-reader-status[data-state="error"] {
+        color: var(--fg);
+      }
+
+      .doc-reader-progress {
+        height: 1px;
+        width: 100%;
+        background: var(--line);
+        overflow: hidden;
+      }
+
+      .doc-reader-progress span {
+        display: block;
+        height: 100%;
+        width: 0;
+        background: var(--fg);
+        transition: width 0.4s var(--ease);
+      }
+
+      .doc-reader-filled {
+        display: grid;
+        border-top: 1px solid var(--line);
+      }
+
+      .doc-reader-row {
+        display: grid;
+        grid-template-columns: minmax(0, 12rem) minmax(0, 1fr) auto;
+        align-items: baseline;
+        column-gap: clamp(0.75rem, 1.4vw, 1.25rem);
+        row-gap: 0.15rem;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .doc-reader-row-label,
+      .doc-reader-row-tag {
+        font-size: 0.625rem;
+        font-weight: 500;
+        line-height: 1.15;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .doc-reader-row-tag {
+        justify-self: end;
+        text-align: right;
+      }
+
+      .doc-reader-row-value {
+        font-size: 0.9375rem;
+        line-height: 1.4;
+        letter-spacing: -0.005em;
+        overflow-wrap: anywhere;
+      }
+
+      @media (max-width: 720px) {
+        .doc-reader-row {
+          grid-template-columns: minmax(0, 1fr) auto;
+        }
+        .doc-reader-row-label {
+          grid-column: 1 / -1;
+        }
+        .doc-reader-drop {
+          align-items: flex-start;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .doc-reader-drop,
+        .doc-reader-progress span {
+          transition: none;
+        }
+      }
     </style>
   </head>
   <body>
@@ -1964,6 +2143,637 @@
           <span ref={ref} className="number-value">
             {pad2(display)}
           </span>
+        );
+      }
+
+      /* ---------------------------------------------------------------
+         Document reader — reads a marksheet, admit card, ID or
+         certificate in the browser and prefills the registration form.
+         The file is never uploaded, stored or sent anywhere.
+      ---------------------------------------------------------------- */
+
+      // One place to change the OCR language set.
+      const OCR_LANGS = 'eng+hin+mar';
+
+      const OCR_SCRIPT = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+      const OCR_WORKER = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/worker.min.js';
+      const OCR_CORE = 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.0';
+      const OCR_LANG_PATH = 'https://cdn.jsdelivr.net/gh/naptha/tessdata@gh-pages/4.0.0';
+
+      const PDF_SCRIPT = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js';
+      const PDF_WORKER = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+
+      const DOC_ACCEPT = ['.pdf', '.jpg', '.jpeg', '.png', '.webp'];
+      const DOC_MAX_BYTES = 10 * 1024 * 1024;
+      const DOC_MAX_PAGES = 3;
+
+      const DOC_FIELDS = [
+        'phone',
+        'name',
+        'school',
+        'degree',
+        'year',
+        'annual_income',
+        'category',
+        'disability_pct'
+      ];
+
+      const DOC_LABELS = {
+        phone: 'Phone number',
+        name: 'Full name',
+        school: 'School / college',
+        degree: 'Degree / class',
+        year: 'Year',
+        annual_income: 'Annual income',
+        category: 'Category',
+        disability_pct: 'Disability percentage'
+      };
+
+      const DOC_CATEGORY_LABELS = {
+        GENERAL: 'General',
+        GENERAL_GIRLS: 'General Girls',
+        SC: 'SC',
+        ST: 'ST',
+        OBC: 'OBC',
+        SOCIAL_SC: 'Social SC',
+        SOCIAL_PWD: 'PWD'
+      };
+
+      // Loaded once, lazily, only when a file is actually chosen.
+      const docScripts = {};
+
+      const loadDocScript = (src) => {
+        if (!docScripts[src]) {
+          docScripts[src] = new Promise((resolve, reject) => {
+            const el = document.createElement('script');
+            el.src = src;
+            el.async = true;
+            el.onload = () => resolve();
+            el.onerror = () => {
+              delete docScripts[src];
+              el.remove();
+              reject(new Error('The reader could not load. Check the connection and try again.'));
+            };
+            document.head.appendChild(el);
+          });
+        }
+        return docScripts[src];
+      };
+
+      const docLines = (text) =>
+        String(text || '')
+          .replace(/\r/g, '\n')
+          .split('\n')
+          .map((line) => line.replace(/[ \t]+/g, ' ').trim())
+          .filter((line) => line.length > 0);
+
+      // Cut a captured value at the next label or at a wide gap.
+      const docCut = (value) =>
+        String(value || '')
+          .split(
+            /\s{2,}|\s*\|\s*|\s+(?:roll|reg|registration|enrol|dob|date|father|mother|category|caste|income)\b/i
+          )[0]
+          .replace(/[.,;:]+$/, '')
+          .trim();
+
+      const DOC_NAME_NOISE = /(?:father|mother|guardian|parent|husband|spouse|bank|account|ifsc|signature|principal|examination|board|university|address)/i;
+      const DOC_SCHOOL_NOISE = /(?:certificate|examination|statement|marks|board|result|government|govt|session|address|code)/i;
+      const DOC_NAME_TITLES = /^(?:mr|mrs|miss|ms|shri|smt|kumari|dr)\.?\s+/i;
+      const DOC_HEADER = /(?:government|govt|india|state|board|university|school|college|institute|certificate|marksheet|statement|admit|card|examination|result|session|annual|income|father|mother|date|birth|roll|registration|subject|class|category|caste|address|district|taluka|village|signature|photo|principal|office|department|serial|number)/i;
+
+      const docName = (value) => {
+        let name = docCut(value).replace(DOC_NAME_TITLES, '');
+        name = name.replace(/\s+(?:mr|mrs|miss|ms|shri|smt|kumari|dr)\.?$/i, '');
+        name = name.replace(/\s+/g, ' ').trim();
+        if (name.length < 3 || name.length > 60) return '';
+        if (!/^[\u0900-\u097F A-Za-z][\u0900-\u097F A-Za-z.'\u2019-]*$/.test(name)) return '';
+        if (name.split(' ').length > 5) return '';
+        if (DOC_HEADER.test(name)) return '';
+        return name;
+      };
+
+      const extractName = (text) => {
+        const lines = docLines(text);
+        for (let i = 0; i < lines.length; i++) {
+          if (DOC_NAME_NOISE.test(lines[i])) continue;
+          const match = lines[i].match(
+            /(?:student\s*name|full\s*name|name|नाम)\s*[:\-\u2013\u2014]?\s*(.+)$/i
+          );
+          if (!match) continue;
+          const found = docName(match[1]);
+          if (found) return found;
+        }
+        // Fallback: the most prominent title-case line that is not a header.
+        let best = '';
+        for (let i = 0; i < lines.length; i++) {
+          const candidate = docName(lines[i]);
+          if (!candidate) continue;
+          const titleCase = candidate
+            .split(' ')
+            .every((word) => /^[A-Z\u0900-\u097F]/.test(word));
+          if (!titleCase) continue;
+          if (candidate.length > best.length) best = candidate;
+        }
+        return best;
+      };
+
+      const extractPhone = (text) => {
+        const lines = docLines(text);
+        for (let i = 0; i < lines.length; i++) {
+          // Join digit groups separated by spaces, dashes or brackets.
+          const joined = lines[i].replace(/(\d)[\s\-().]+(?=\d)/g, '$1');
+          const runs = joined.match(/\d{10,13}/g) || [];
+          for (let r = 0; r < runs.length; r++) {
+            let digits = runs[r];
+            // Tolerate a country code, a trunk 0 or one stray glyph the
+            // OCR read in place of the label separator.
+            if (digits.length === 12 && digits.slice(0, 2) === '91') digits = digits.slice(2);
+            else if (digits.length === 11 && /^[6-9]/.test(digits.slice(1))) digits = digits.slice(1);
+            if (digits.length === 10 && /^[6-9]/.test(digits)) return digits;
+          }
+        }
+        return '';
+      };
+
+      const extractSchool = (text) => {
+        const lines = docLines(text);
+        const patterns = [
+          /(?:school|college|institute|university|विद्यालय|महाविद्यालय)\s*(?:name)?\s*[:\-\u2013\u2014]\s*(.+)$/i,
+          /(?:school|college|institute|university|विद्यालय|महाविद्यालय)\s*(?:name)?\s+(.+)$/i
+        ];
+        for (let p = 0; p < patterns.length; p++) {
+          for (let i = 0; i < lines.length; i++) {
+            const match = lines[i].match(patterns[p]);
+            if (!match) continue;
+            const value = docCut(match[1]).replace(/^[:\-\u2013\u2014\s]+/, '');
+            if (value.length < 3) continue;
+            if (DOC_SCHOOL_NOISE.test(value)) continue;
+            if (/^(?:address|name|code|board|university)\b/i.test(value)) continue;
+            return value;
+          }
+        }
+        return '';
+      };
+
+      // Documented short forms: 10th, 12th, B.A., B.Sc., B.Com., B.Tech,
+      // M.A., M.Sc., M.Com., M.Tech, Diploma.
+      const DOC_CLASSES = [
+        [/\b(?:class|std|standard)\s*[^\w\s]?\s*(?:xii|12)\b/i, '12th'],
+        [/\b(?:class|std|standard)\s*[^\w\s]?\s*(?:x|10)\b/i, '10th']
+      ];
+
+      const DOC_DEGREES = [
+        [/\b(?:xii|12th)\b/i, '12th'],
+        [/\b10th\b/i, '10th'],
+        [/\bb\.?\s?tech\b/i, 'B.Tech'],
+        [/\bm\.?\s?tech\b/i, 'M.Tech'],
+        [/\bb\.?\s?sc\b/i, 'B.Sc.'],
+        [/\bm\.?\s?sc\b/i, 'M.Sc.'],
+        [/\bb\.?\s?com\b/i, 'B.Com.'],
+        [/\bm\.?\s?com\b/i, 'M.Com.'],
+        [/\bb\.?\s?a\b/i, 'B.A.'],
+        [/\bm\.?\s?a\b/i, 'M.A.'],
+        [/\bdiploma\b/i, 'Diploma']
+      ];
+
+      const extractDegree = (text) => {
+        const lines = docLines(text);
+        for (let i = 0; i < lines.length; i++) {
+          if (!/(?:class|std|standard|degree|course|stream|faculty|वर्ग|शिक्षण)/i.test(lines[i])) continue;
+          for (let c = 0; c < DOC_CLASSES.length; c++) {
+            if (DOC_CLASSES[c][0].test(lines[i])) return DOC_CLASSES[c][1];
+          }
+          for (let d = 0; d < DOC_DEGREES.length; d++) {
+            if (DOC_DEGREES[d][0].test(lines[i])) return DOC_DEGREES[d][1];
+          }
+        }
+        for (let d = 0; d < DOC_DEGREES.length; d++) {
+          if (DOC_DEGREES[d][0].test(text)) return DOC_DEGREES[d][1];
+        }
+        return '';
+      };
+
+      const extractYear = (text) => {
+        const lines = docLines(text);
+        for (let i = 0; i < lines.length; i++) {
+          if (!/(?:year|batch|session|सन|शैक्षणिक\s*वर्ष)/i.test(lines[i])) continue;
+          const match = lines[i].match(/\b(19[9]\d|20[0-2]\d|203[0-5])\b/);
+          if (match) return parseInt(match[1], 10);
+        }
+        return 0;
+      };
+
+      const DOC_MONEY = /(?:₹|रु|\brs\.?|\binr\b|\/-)/i;
+
+      const extractIncome = (text) => {
+        const lines = docLines(text);
+        const moneyAnywhere = DOC_MONEY.test(text);
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          if (!/(?:income|आय|वार्षिक)/i.test(line)) continue;
+          const labelled = line.match(
+            /(?:₹|रु|rs\.?|inr)\s*([\d][\d,.]*)\s*(lakh|lakhs|lac|lacs|crore|crores|cr|k|thousand)?/i
+          );
+          let raw = labelled ? labelled[1] : '';
+          let unit = labelled && labelled[2] ? labelled[2].toLowerCase() : '';
+          if (!raw) {
+            if (!moneyAnywhere) continue;
+            // Take the largest number on the income line.
+            const numbers = line.match(/\d[\d,.]*/g) || [];
+            let best = -1;
+            for (let n = 0; n < numbers.length; n++) {
+              const value = parseFloat(numbers[n].replace(/,/g, ''));
+              if (isFinite(value) && value > best) {
+                best = value;
+                raw = numbers[n];
+              }
+            }
+            const unitMatch = line.match(/\b(lakh|lakhs|lac|lacs|crore|crores|cr|k|thousand)\b/i);
+            unit = unitMatch ? unitMatch[1].toLowerCase() : '';
+          }
+          if (!raw) continue;
+          let value = parseFloat(raw.replace(/,/g, ''));
+          if (!isFinite(value) || value <= 0) continue;
+          if (/^(?:lakh|lakhs|lac|lacs)$/.test(unit)) value *= 100000;
+          else if (/^(?:crore|crores|cr)$/.test(unit)) value *= 10000000;
+          else if (/^(?:k|thousand)$/.test(unit)) value *= 1000;
+          value = Math.round(value);
+          if (value > 0 && value <= 1000000000) return value;
+        }
+        return 0;
+      };
+
+      const extractCategory = (text) => {
+        const lines = docLines(text);
+        const scoped = [];
+        for (let i = 0; i < lines.length; i++) {
+          if (/(?:categor|caste|वर्ग|जाति)/i.test(lines[i])) scoped.push(lines[i]);
+        }
+        const scope = scoped.length ? scoped.join(' ') : text;
+        const strict = scoped.length === 0;
+        const hit = (pattern) => pattern.test(scope);
+
+        const girls = /(?:\bgirls?\b|\bfemale\b|महिला|बालिका)/i.test(scope);
+        if (hit(/(?:\bpwd\b|\bdivyang\b|दिव्यांग|विकलांग|disabilit)/i)) return 'SOCIAL_PWD';
+        if (hit(strict ? /\bSC\b|\bS\.C\.?\b/ : /\bSC\b|\bS\.C\.?\b|scheduled\s+caste|अनुसूचित\s*जाति/i)) {
+          return 'SC';
+        }
+        if (hit(strict ? /\bST\b|\bS\.T\.?\b/ : /\bST\b|\bS\.T\.?\b|scheduled\s+tribe|अनुसूचित\s*जनजाति/i)) {
+          return 'ST';
+        }
+        if (hit(strict ? /\bOBC\b/ : /\bOBC\b|other\s+backward|अन्य\s*पिछड़ा/i)) return 'OBC';
+        if (hit(strict ? /\bGENERAL\b/ : /\bgeneral\b|सामान्य/i)) {
+          return girls ? 'GENERAL_GIRLS' : 'GENERAL';
+        }
+        return '';
+      };
+
+      const extractDisability = (text) => {
+        const lines = docLines(text);
+        for (let i = 0; i < lines.length; i++) {
+          if (!/(?:disabilit|दिव्यांगता|दिव्यांग|विकलांग|\bpwd\b)/i.test(lines[i])) continue;
+          const match = lines[i].match(/(\d{1,3})\s*%/);
+          if (!match) continue;
+          const value = parseInt(match[1], 10);
+          if (value > 0 && value <= 100) return value;
+        }
+        return 0;
+      };
+
+      // Anything else stays informational: never a new form field.
+      const extractExtras = (text) => {
+        const found = [];
+        const dob = text.match(
+          /(?:d\.?\s?o\.?\s?b\.?|date\s+of\s+birth|जन्म\s*(?:तिथि|दिनांक))\s*[:\-\u2013\u2014]?\s*([0-3]?\d[\/.\-][01]?\d[\/.\-](?:19|20)\d{2})/i
+        );
+        if (dob) found.push('DOB ' + dob[1]);
+        const roll = text.match(
+          /(?:roll|registration|enrol(?:l)?ment)\s*(?:no\.?|number)?\s*[:\-\u2013\u2014]?\s*([A-Z0-9][A-Z0-9\/\-]{3,19})/i
+        );
+        if (roll) found.push('Roll no. ' + roll[1]);
+        const board = text.match(/(?:board|university)\s*[:\-\u2013\u2014]?\s*([A-Za-z][A-Za-z. ]{2,39})/i);
+        if (board) found.push('Board ' + board[1].trim());
+        const parent = text.match(
+          /(?:father|mother)(?:'s)?\s*name\s*[:\-\u2013\u2014]?\s*([A-Za-z\u0900-\u097F][A-Za-z\u0900-\u097F. ]{2,49})/i
+        );
+        if (parent) found.push('Parent ' + parent[1].trim());
+        const marks = text.match(/(\d{1,3}(?:\.\d{1,2})?)\s*%/);
+        if (marks) {
+          const at = marks.index || 0;
+          const around = text.slice(Math.max(0, at - 48), at + marks[0].length);
+          if (!/(?:disabilit|दिव्यांगता|\bpwd\b)/i.test(around)) {
+            found.push('Marks ' + marks[1] + '%');
+          }
+        }
+        return found;
+      };
+
+      const docDisplay = (key, value) => {
+        if (key === 'annual_income') return '₹' + Number(value).toLocaleString('en-IN');
+        if (key === 'category') return DOC_CATEGORY_LABELS[value] || value;
+        if (key === 'disability_pct') return value + '%';
+        return String(value);
+      };
+
+      const docCanvases = async (file) => {
+        const pdfjs = window.pdfjsLib;
+        if (!pdfjs) {
+          throw new Error('The PDF reader could not start. Check the connection and try again.');
+        }
+        pdfjs.GlobalWorkerOptions.workerSrc = PDF_WORKER;
+        const data = new Uint8Array(await file.arrayBuffer());
+        const doc = await pdfjs.getDocument({ data: data, isEvalSupported: false }).promise;
+        const canvases = [];
+        try {
+          const total = Math.min(doc.numPages, DOC_MAX_PAGES);
+          for (let p = 1; p <= total; p++) {
+            const page = await doc.getPage(p);
+            const viewport = page.getViewport({ scale: 2 });
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.round(viewport.width);
+            canvas.height = Math.round(viewport.height);
+            await page.render({ canvasContext: canvas.getContext('2d'), viewport: viewport }).promise;
+            page.cleanup();
+            canvases.push(canvas);
+          }
+        } finally {
+          await doc.destroy();
+        }
+        return canvases;
+      };
+
+      const docText = async (file, onProgress) => {
+        const isPdf = /\.pdf$/i.test(file.name) || file.type === 'application/pdf';
+        if (isPdf) await loadDocScript(PDF_SCRIPT);
+        const canvases = isPdf ? await docCanvases(file) : null;
+        await loadDocScript(OCR_SCRIPT);
+        const Tesseract = window.Tesseract;
+        if (!Tesseract) {
+          throw new Error('The reader could not start. Check the connection and try again.');
+        }
+
+        const total = canvases ? canvases.length : 1;
+        let page = 0;
+        let overall = 0;
+        const emit = (fraction) => {
+          const value = (page + Math.min(1, Math.max(0, fraction))) / total;
+          if (value > overall) {
+            overall = value;
+            onProgress(Math.round(value * 100));
+          }
+        };
+
+        const worker = await Tesseract.createWorker(OCR_LANGS, 1, {
+          workerPath: OCR_WORKER,
+          corePath: OCR_CORE,
+          langPath: OCR_LANG_PATH,
+          logger: (m) => {
+            if (!m) return;
+            const part = typeof m.progress === 'number' ? m.progress : 0;
+            if (m.status === 'recognizing text') emit(part);
+            else if (m.status === 'loading language traineddata') emit(part * 0.25);
+            else if (m.status === 'initializing api') emit(0.35);
+            else if (m.status === 'initializing tesseract') emit(0.2);
+          }
+        });
+
+        const urls = [];
+        try {
+          if (canvases) {
+            const texts = [];
+            for (let i = 0; i < canvases.length; i++) {
+              page = i;
+              const result = await worker.recognize(canvases[i]);
+              texts.push(result && result.data ? result.data.text : '');
+              canvases[i].width = 0;
+              canvases[i].height = 0;
+            }
+            onProgress(100);
+            return texts.join('\n');
+          }
+          const url = URL.createObjectURL(file);
+          urls.push(url);
+          const result = await worker.recognize(url);
+          onProgress(100);
+          return result && result.data ? result.data.text : '';
+        } finally {
+          for (let i = 0; i < urls.length; i++) URL.revokeObjectURL(urls[i]);
+          await worker.terminate();
+        }
+      };
+
+      function DocumentReader({ student, setStudent }) {
+        const [fileName, setFileName] = useState('');
+        const [stage, setStage] = useState('idle');
+        const [progress, setProgress] = useState(0);
+        const [summary, setSummary] = useState('');
+        const [filled, setFilled] = useState([]);
+        const [extras, setExtras] = useState([]);
+        const [over, setOver] = useState(false);
+
+        const inputRef = useRef(null);
+        const runRef = useRef(0);
+        const progressRef = useRef(0);
+        const studentRef = useRef(student);
+        // The state the form mounted with: anything else was typed by the student.
+        const pristineRef = useRef(student);
+
+        studentRef.current = student;
+
+        useEffect(() => {
+          return () => {
+            // Ignore anything still in flight once the block is gone.
+            runRef.current += 1;
+          };
+        }, []);
+
+        const report = (value) => {
+          const step = value >= 100 ? 100 : Math.floor(value / 10) * 10;
+          if (step <= progressRef.current) return;
+          progressRef.current = step;
+          setProgress(step);
+        };
+
+        const apply = (text) => {
+          const found = {
+            name: extractName(text),
+            phone: extractPhone(text),
+            school: extractSchool(text),
+            degree: extractDegree(text),
+            year: extractYear(text),
+            annual_income: extractIncome(text),
+            category: extractCategory(text),
+            disability_pct: extractDisability(text)
+          };
+          const current = studentRef.current || {};
+          const patch = {};
+          const tags = [];
+
+          DOC_FIELDS.forEach((key) => {
+            const value = found[key];
+            if (value === '' || value === 0 || value === undefined || value === null) return;
+            if (current[key] === value) return;
+            // Only empty or untouched fields are filled.
+            if (current[key] !== '' && current[key] !== pristineRef.current[key]) return;
+            patch[key] = value;
+            tags.push({ key: key, label: DOC_LABELS[key], value: docDisplay(key, value) });
+          });
+
+          if (tags.length) setStudent((prev) => ({ ...prev, ...patch }));
+          setFilled(tags);
+          setExtras(extractExtras(text));
+          setSummary(
+            tags.length
+              ? tags.length + ' of ' + DOC_FIELDS.length + ' fields filled'
+              : 'No form fields found. Nothing was changed.'
+          );
+          setStage('done');
+        };
+
+        const read = async (picked) => {
+          if (!picked) return;
+          const name = String(picked.name || '').toLowerCase();
+          const allowed = DOC_ACCEPT.some((ext) => name.slice(-ext.length) === ext);
+          if (!allowed) {
+            setFileName(picked.name);
+            setFilled([]);
+            setExtras([]);
+            setSummary('That file type is not supported. Use a PDF, JPG, PNG or WEBP.');
+            setStage('error');
+            return;
+          }
+          if (picked.size > DOC_MAX_BYTES) {
+            setFileName(picked.name);
+            setFilled([]);
+            setExtras([]);
+            setSummary('That file is larger than 10 MB. Choose a smaller file.');
+            setStage('error');
+            return;
+          }
+
+          const ticket = runRef.current + 1;
+          runRef.current = ticket;
+          progressRef.current = 0;
+          setFileName(picked.name);
+          setProgress(0);
+          setFilled([]);
+          setExtras([]);
+          setSummary('');
+          setStage('reading');
+
+          try {
+            const text = await docText(picked, (value) => {
+              if (runRef.current === ticket) report(value);
+            });
+            if (runRef.current !== ticket) return;
+            apply(text);
+          } catch (err) {
+            if (runRef.current !== ticket) return;
+            setFilled([]);
+            setExtras([]);
+            setSummary(
+              err && err.message
+                ? err.message
+                : 'The document could not be read. Enter the details by hand.'
+            );
+            setStage('error');
+          }
+        };
+
+        const pick = () => {
+          if (inputRef.current) inputRef.current.click();
+        };
+
+        const onDrop = (e) => {
+          e.preventDefault();
+          setOver(false);
+          const dropped = e.dataTransfer && e.dataTransfer.files ? e.dataTransfer.files[0] : null;
+          if (dropped) read(dropped);
+        };
+
+        const statusText =
+          stage === 'reading'
+            ? 'Reading document — ' + progress + '%'
+            : stage === 'done' || stage === 'error'
+              ? summary
+              : '';
+
+        return (
+          <div className={'form-grid doc-reader' + (fileName ? ' has-file' : '')}>
+            <div className="field field--full">
+              <span className="doc-reader-label">Prefill from a document</span>
+              <div
+                className={'doc-reader-drop' + (over ? ' is-over' : '')}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setOver(true);
+                }}
+                onDragLeave={() => setOver(false)}
+                onDrop={onDrop}
+              >
+                <div className="doc-reader-lead">
+                  <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path d="M9.5 0.5H3.5V15.5H12.5V3.5L9.5 0.5Z" stroke="currentColor" />
+                    <path d="M9.5 0.5V3.5H12.5" stroke="currentColor" />
+                    <path d="M5.5 8H10.5M5.5 11H8.5" stroke="currentColor" />
+                  </svg>
+                  <span className="doc-reader-file">
+                    {fileName || 'Marksheet, admit card, ID or certificate'}
+                  </span>
+                </div>
+                <div className="doc-reader-actions">
+                  <input
+                    ref={inputRef}
+                    className="doc-reader-input"
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png,.webp"
+                    tabIndex={-1}
+                    aria-hidden="true"
+                    onChange={(e) => {
+                      const picked = e.target.files && e.target.files[0];
+                      e.target.value = '';
+                      if (picked) read(picked);
+                    }}
+                  />
+                  <button type="button" className="btn-line" onClick={pick}>
+                    {fileName ? 'Choose another' : 'Choose file'}
+                  </button>
+                </div>
+              </div>
+              <p className="doc-reader-note">
+                Read in your browser — never uploaded or stored. PDF, JPG, PNG or WEBP up to 10 MB.
+              </p>
+            </div>
+
+            <div className="field field--full">
+              <div className="doc-reader-progress" aria-hidden="true">
+                <span style={{ width: progress + '%' }}></span>
+              </div>
+              <p className="doc-reader-status" data-state={stage} role="status" aria-live="polite">
+                {statusText}
+              </p>
+            </div>
+
+            {filled.length > 0 && (
+              <div className="field field--full">
+                <div className="doc-reader-filled">
+                  {filled.map((item) => (
+                    <div className="doc-reader-row" key={item.key}>
+                      <span className="doc-reader-row-label">{item.label}</span>
+                      <span className="doc-reader-row-value">{item.value}</span>
+                      <span className="doc-reader-row-tag">from document</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {extras.length > 0 && (
+              <div className="field field--full">
+                <p className="doc-reader-extras">Also found: {extras.join(' · ')}</p>
+              </div>
+            )}
+          </div>
         );
       }
 
@@ -2748,6 +3558,7 @@
                     <div className="acc-body" id="panel-student">
                       <div className="acc-body-inner">
                         <div className="acc-content">
+                          <DocumentReader student={newStudent} setStudent={setNewStudent} />
                           <form onSubmit={handleCreateStudent}>
                             <div className="form-grid">
                               <div className="field">
