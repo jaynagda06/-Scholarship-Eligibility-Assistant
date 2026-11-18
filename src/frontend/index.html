@@ -59,6 +59,8 @@
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
         overflow-x: hidden;
+      }
+      body.custom-cursor {
         cursor: none;
       }
       .cursor {
@@ -74,6 +76,7 @@
         mix-blend-mode: difference;
         transform: translate(-50%, -50%);
         transition: width 0.18s ease, height 0.18s ease, background 0.18s ease, border 0.18s ease;
+        will-change: transform;
       }
       .cursor.follower {
         width: 38px;
@@ -93,8 +96,9 @@
         height: 64px;
         border-color: rgba(37, 99, 235, 0.5);
       }
-      @media (max-width: 768px) {
-        body, .cursor, .cursor.follower { cursor: auto; }
+      @media (max-width: 768px), (pointer: coarse) {
+        body.custom-cursor { cursor: auto; }
+        .cursor, .cursor.follower { display: none; }
       }
       
       .app {
@@ -202,6 +206,9 @@
         cursor: pointer;
         font-family: 'Inter', sans-serif;
         transition: background 0.2s ease, border-color 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
       }
       
       .btn-refresh:hover {
@@ -534,6 +541,11 @@
         font-size: 13px;
         margin-bottom: var(--space-lg);
         border: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-md);
+        flex-wrap: wrap;
       }
       
       .alert-error {
@@ -608,6 +620,16 @@
         margin-bottom: var(--space-sm);
       }
       
+      .scholarship-item a {
+        color: var(--info);
+        text-decoration: none;
+        font-weight: 500;
+      }
+      
+      .scholarship-item a:hover {
+        text-decoration: underline;
+      }
+      
       .score-badge {
         display: inline-flex;
         align-items: center;
@@ -642,6 +664,15 @@
         color: var(--text-muted);
         font-size: 13px;
       }
+      .empty-state i {
+        display: block;
+        font-size: 28px;
+        margin-bottom: var(--space-sm);
+        color: var(--text-muted);
+      }
+      .empty-state p {
+        margin-bottom: 4px;
+      }
       
       .footer {
         margin-top: var(--space-3xl);
@@ -674,6 +705,9 @@
     <script type="text/babel">
       const { useState, useEffect, useRef } = React;
 
+      // Same-origin API on Vercel (Services routing) and proxied by Vite locally.
+      const API_BASE = '/api';
+
       function App() {
         const [students, setStudents] = useState([]);
         const [scholarships, setScholarships] = useState([]);
@@ -682,7 +716,6 @@
         const [loading, setLoading] = useState(false);
         const [error, setError] = useState('');
         const [success, setSuccess] = useState('');
-        const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
         
         const [newStudent, setNewStudent] = useState({
           phone: '',
@@ -707,57 +740,76 @@
 
         useEffect(() => {
           fetchData();
-          
-          const handleMouseMove = (e) => {
-            setMousePos({ x: e.clientX, y: e.clientY });
-          };
-          
-          window.addEventListener('mousemove', handleMouseMove);
-          return () => window.removeEventListener('mousemove', handleMouseMove);
         }, []);
 
+        // Custom cursor: a single delegated listener set, cleaned up on unmount.
         useEffect(() => {
+          const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+          const coarsePointer = window.matchMedia('(pointer: coarse)').matches;
+          if (reduceMotion || coarsePointer) return;
+
           const cursor = document.querySelector('.cursor');
           const follower = document.querySelector('.cursor.follower');
-          if (cursor && follower) {
-            cursor.style.transform = `translate(${mousePos.x}px, ${mousePos.y}px)`;
-            follower.style.transform = `translate(${mousePos.x}px, ${mousePos.y}px)`;
-          }
-          
-          const interactables = document.querySelectorAll('button, a, input, select, textarea, .card, .stat-card');
-          interactables.forEach(el => {
-            el.addEventListener('mouseenter', () => {
-              if (cursor && follower) {
-                cursor.classList.add('hover');
-                follower.classList.add('hover');
-              }
-            });
-            el.addEventListener('mouseleave', () => {
-              if (cursor && follower) {
-                cursor.classList.remove('hover');
-                follower.classList.remove('hover');
-              }
-            });
-          });
-        }, [mousePos]);
+          if (!cursor || !follower) return;
+
+          document.body.classList.add('custom-cursor');
+
+          const move = (e) => {
+            cursor.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
+            follower.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
+          };
+          const isInteractive = (target) =>
+            target instanceof Element &&
+            target.closest('button, a, input, select, textarea, .card, .stat-card');
+          const over = (e) => {
+            if (isInteractive(e.target)) {
+              cursor.classList.add('hover');
+              follower.classList.add('hover');
+            }
+          };
+          const out = (e) => {
+            if (isInteractive(e.target)) {
+              cursor.classList.remove('hover');
+              follower.classList.remove('hover');
+            }
+          };
+
+          window.addEventListener('mousemove', move, { passive: true });
+          document.addEventListener('mouseover', over);
+          document.addEventListener('mouseout', out);
+
+          return () => {
+            document.body.classList.remove('custom-cursor');
+            window.removeEventListener('mousemove', move);
+            document.removeEventListener('mouseover', over);
+            document.removeEventListener('mouseout', out);
+          };
+        }, []);
 
         const fetchData = async () => {
           try {
+            setError('');
             const [studentsRes, scholarshipsRes] = await Promise.all([
-              fetch('http://localhost:3000/students'),
-              fetch('http://localhost:3000/scholarships')
+              fetch(`${API_BASE}/students`),
+              fetch(`${API_BASE}/scholarships`)
             ]);
-            
-            if (studentsRes.ok) {
-              const data = await studentsRes.json();
-              setStudents(data);
+
+            if (!studentsRes.ok || !scholarshipsRes.ok) {
+              throw new Error(
+                `Server responded with ${studentsRes.status} / ${scholarshipsRes.status}`
+              );
             }
-            if (scholarshipsRes.ok) {
-              const data = await scholarshipsRes.json();
-              setScholarships(data);
-            }
+
+            const [studentsData, scholarshipsData] = await Promise.all([
+              studentsRes.json(),
+              scholarshipsRes.json()
+            ]);
+
+            setStudents(Array.isArray(studentsData) ? studentsData : []);
+            setScholarships(Array.isArray(scholarshipsData) ? scholarshipsData : []);
           } catch (err) {
-            setError('Failed to fetch data');
+            console.error('Dashboard data fetch failed:', err);
+            setError('Check the server connection and try again.');
           }
         };
 
@@ -768,7 +820,7 @@
           setSuccess('');
           
           try {
-            const res = await fetch('http://localhost:3000/students', {
+            const res = await fetch(`${API_BASE}/students`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json'
@@ -806,7 +858,7 @@
           setSuccess('');
           
           try {
-            const res = await fetch('http://localhost:3000/scholarships', {
+            const res = await fetch(`${API_BASE}/scholarships`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json'
@@ -847,7 +899,7 @@
           setSuccess('');
           
           try {
-            const res = await fetch(`http://localhost:3000/students/${selectedStudent}/eligibility`, {
+            const res = await fetch(`${API_BASE}/students/${selectedStudent}/eligibility`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json'
@@ -869,9 +921,9 @@
         };
 
         const getScoreClass = (score) => {
-          if (score >= 70) return 'high';
-          if (score >= 40) return 'medium';
-          return 'low';
+          if (score >= 70) return 'score-high';
+          if (score >= 40) return 'score-medium';
+          return 'score-low';
         };
 
         const getScoreLabel = (score) => {
@@ -881,240 +933,363 @@
         };
 
         return (
-          <div className="container">
-            <div className="header">
-              <h1>🎓 Scholarship Eligibility Assistant</h1>
-              <p>AI-driven scholarship recommendation platform</p>
-            </div>
-
-            {error && <div className="error">{error}</div>}
-            {success && <div className="success">{success}</div>}
-
-            <div className="stats">
-              <div className="stat-card">
-                <div className="number">{students.length}</div>
-                <div className="label">Students Registered</div>
-              </div>
-              <div className="stat-card">
-                <div className="number">{scholarships.length}</div>
-                <div className="label">Scholarships Available</div>
-              </div>
-              <div className="stat-card">
-                <div className="number">{recommendations.length}</div>
-                <div className="label">Recommendations</div>
-              </div>
-            </div>
-
-            <div className="main">
-              <div className="card">
-                <h2>👤 Register Student</h2>
-                <form onSubmit={handleCreateStudent}>
-                  <div className="form-group">
-                    <label>Phone Number</label>
-                    <input
-                      type="text"
-                      value={newStudent.phone}
-                      onChange={(e) => setNewStudent({...newStudent, phone: e.target.value})}
-                      required
-                      placeholder="e.g., 9876543210"
-                    />
+          <div className="app">
+            <div className="container">
+              <header className="header">
+                <div className="header-left">
+                  <div className="logo-icon" aria-hidden="true">
+                    <i className="ph ph-graduation-cap"></i>
                   </div>
-                  <div className="form-group">
-                    <label>Full Name</label>
-                    <input
-                      type="text"
-                      value={newStudent.name}
-                      onChange={(e) => setNewStudent({...newStudent, name: e.target.value})}
-                      required
-                      placeholder="e.g., Ravi Kumar"
-                    />
+                  <div className="header-text">
+                    <h1>Scholarship Eligibility Assistant</h1>
+                    <p>Scholarship management workspace</p>
                   </div>
-                  <div className="form-group">
-                    <label>School/College</label>
-                    <input
-                      type="text"
-                      value={newStudent.school}
-                      onChange={(e) => setNewStudent({...newStudent, school: e.target.value})}
-                      placeholder="e.g., XYZ College"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Degree/Class</label>
-                    <input
-                      type="text"
-                      value={newStudent.degree}
-                      onChange={(e) => setNewStudent({...newStudent, degree: e.target.value})}
-                      placeholder="e.g., B.Tech, 12th, 10th"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Year</label>
-                    <input
-                      type="number"
-                      value={newStudent.year}
-                      onChange={(e) => setNewStudent({...newStudent, year: parseInt(e.target.value)})}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Annual Income (₹)</label>
-                    <input
-                      type="number"
-                      value={newStudent.annual_income}
-                      onChange={(e) => setNewStudent({...newStudent, annual_income: parseFloat(e.target.value)})}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Category</label>
-                    <select
-                      value={newStudent.category}
-                      onChange={(e) => setNewStudent({...newStudent, category: e.target.value})}
-                    >
-                      <option value="GENERAL">General</option>
-                      <option value="GENERAL_GIRLS">General Girls</option>
-                      <option value="SC">SC</option>
-                      <option value="ST">ST</option>
-                      <option value="OBC">OBC</option>
-                      <option value="SOCIAL_SC">Social SC</option>
-                      <option value="SOCIAL_PWD">PWD</option>
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label>Disability Percentage (%)</label>
-                    <input
-                      type="number"
-                      value={newStudent.disability_pct}
-                      onChange={(e) => setNewStudent({...newStudent, disability_pct: parseInt(e.target.value)})}
-                      min="0"
-                      max="100"
-                    />
-                  </div>
-                  <button type="submit" className="btn" disabled={loading}>
-                    {loading ? 'Creating...' : 'Register Student'}
-                  </button>
-                </form>
-              </div>
-
-              <div className="card">
-                <h2>🎓 Add Scholarship</h2>
-                <form onSubmit={handleCreateScholarship}>
-                  <div className="form-group">
-                    <label>Scholarship Name</label>
-                    <input
-                      type="text"
-                      value={newScholarship.name}
-                      onChange={(e) => setNewScholarship({...newScholarship, name: e.target.value})}
-                      required
-                      placeholder="e.g., Central Sector Scheme"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Organization</label>
-                    <input
-                      type="text"
-                      value={newScholarship.org}
-                      onChange={(e) => setNewScholarship({...newScholarship, org: e.target.value})}
-                      required
-                      placeholder="e.g., MHRD / AICTE"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Category</label>
-                    <select
-                      value={newScholarship.category}
-                      onChange={(e) => setNewScholarship({...newScholarship, category: e.target.value})}
-                    >
-                      <option value="CENTRAL_GENERAL">Central General</option>
-                      <option value="STATE_GENERAL">State General</option>
-                      <option value="GENERAL_GIRLS">General Girls</option>
-                      <option value="SOCIAL_SC">Social SC</option>
-                      <option value="SOCIAL_ST">Social ST</option>
-                      <option value="SOCIAL_PWD">PWD</option>
-                      <option value="SCIENCE_RESEARCH">Science Research</option>
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label>Eligibility Criteria</label>
-                    <textarea
-                      value={newScholarship.eligibility_criteria}
-                      onChange={(e) => setNewScholarship({...newScholarship, eligibility_criteria: e.target.value})}
-                      rows="3"
-                      placeholder="e.g., Class 12 pass. Min 80% aggregate. Family annual income < INR 4.5 lakh."
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Deadline</label>
-                    <input
-                      type="date"
-                      value={newScholarship.deadline}
-                      onChange={(e) => setNewScholarship({...newScholarship, deadline: e.target.value})}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Documents Required</label>
-                    <input
-                      type="text"
-                      value={newScholarship.documents}
-                      onChange={(e) => setNewScholarship({...newScholarship, documents: e.target.value})}
-                      placeholder="e.g., income_certificate, marksheets, etc."
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Website URL</label>
-                    <input
-                      type="url"
-                      value={newScholarship.url}
-                      onChange={(e) => setNewScholarship({...newScholarship, url: e.target.value})}
-                      placeholder="e.g., https://scholarships.gov.in"
-                    />
-                  </div>
-                  <button type="submit" className="btn" disabled={loading}>
-                    {loading ? 'Adding...' : 'Add Scholarship'}
-                  </button>
-                </form>
-              </div>
-
-              <div className="card">
-                <h2>🔍 Get Eligibility Recommendations</h2>
-                <div className="form-group">
-                  <label>Select Student</label>
-                  <select
-                    value={selectedStudent}
-                    onChange={(e) => setSelectedStudent(e.target.value)}
-                  >
-                    <option value="">-- Select Student --</option>
-                    {students.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name} ({s.phone})
-                      </option>
-                    ))}
-                  </select>
                 </div>
-                <button onClick={getRecommendations} className="btn" disabled={loading || !selectedStudent}>
-                  {loading ? 'Analyzing...' : 'Get Recommendations'}
-                </button>
-              </div>
+                <div className="header-right">
+                  <div className="status-indicator" role="status" aria-live="polite">
+                    <span className="status-dot" aria-hidden="true"></span>
+                    <span>{error ? 'Connection issue' : 'Live'}</span>
+                  </div>
+                  <button type="button" className="btn-refresh" onClick={fetchData} aria-label="Refresh dashboard data">
+                    <i className="ph ph-arrow-clockwise" aria-hidden="true"></i>
+                    <span>Refresh</span>
+                  </button>
+                </div>
+              </header>
 
-              <div className="card">
-                <h2>📋 Recommended Scholarships</h2>
-                {recommendations.length === 0 ? (
-                  <p style={{ color: '#666', textAlign: 'center', padding: '20px' }}>
-                    No recommendations yet. Select a student and click Get Recommendations.
-                  </p>
-                ) : (
-                  recommendations.map((rec, idx) => (
-                    <div key={idx} className="scholarship-item">
-                      <h3>{rec.details?.name}</h3>
-                      <div className="org">{rec.details?.org}</div>
-                      <div className="meta">Deadline: {rec.details?.deadline}</div>
-                      <div className="meta">Category: {rec.details?.category}</div>
-                      <div className="meta">{rec.details?.eligibility_criteria}</div>
-                      <span className={`score ${getScoreClass(rec.score)}`}>
-                        {rec.score}% - {getScoreLabel(rec.score)}
-                      </span>
+              <section className="overview" aria-labelledby="overview-title">
+                <div className="overview-grid">
+                  <div className="overview-main">
+                    <div className="overview-eyebrow">Scholarship workspace</div>
+                    <h2 id="overview-title">Find the right scholarship.</h2>
+                    <p>Manage student profiles, explore available scholarships, and discover opportunities based on eligibility.</p>
+                    <button
+                      type="button"
+                      className="btn-primary"
+                      onClick={() => document.getElementById('student-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                    >
+                      Register a student
+                    </button>
+                  </div>
+                  <div className="overview-sidebar">
+                    <div className="overview-sidebar-label">Available scholarships</div>
+                    <div className="overview-sidebar-value">{scholarships.length}</div>
+                    <div className="overview-sidebar-desc">Active scholarship records ready for matching</div>
+                  </div>
+                </div>
+              </section>
+
+              {error && (
+                <div className="alert alert-error" role="alert">
+                  <div>
+                    <strong>Unable to load dashboard data.</strong>
+                    <div>{error}</div>
+                  </div>
+                  <button type="button" className="btn-refresh" onClick={fetchData}>Try again</button>
+                </div>
+              )}
+              {success && <div className="alert alert-success" role="status">{success}</div>}
+
+              <section className="stats-grid" aria-label="Dashboard statistics">
+                <div className="stat-card">
+                  <div className="stat-label">Students registered</div>
+                  <div className="stat-value">{students.length}</div>
+                  <div className="stat-desc">Registered student profiles</div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-label">Scholarships available</div>
+                  <div className="stat-value">{scholarships.length}</div>
+                  <div className="stat-desc">Available scholarship records</div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-label">Recommendations</div>
+                  <div className="stat-value">{recommendations.length}</div>
+                  <div className="stat-desc">Generated eligibility recommendations</div>
+                </div>
+              </section>
+
+              <section className="forms-grid" aria-label="Manage records">
+                <div className="card" id="student-form">
+                  <div className="card-header">
+                    <h2>Register student</h2>
+                    <p>Create a student profile for scholarship eligibility checks.</p>
+                  </div>
+                  <form onSubmit={handleCreateStudent}>
+                    <div className="form-grid">
+                      <div className="form-group">
+                        <label htmlFor="student-phone">Phone number</label>
+                        <input
+                          id="student-phone"
+                          type="tel"
+                          value={newStudent.phone}
+                          onChange={(e) => setNewStudent({...newStudent, phone: e.target.value})}
+                          required
+                          placeholder="e.g., 9876543210"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor="student-name">Full name</label>
+                        <input
+                          id="student-name"
+                          type="text"
+                          value={newStudent.name}
+                          onChange={(e) => setNewStudent({...newStudent, name: e.target.value})}
+                          required
+                          placeholder="e.g., Ravi Kumar"
+                        />
+                      </div>
+                      <div className="form-group full-width">
+                        <label htmlFor="student-school">School / college</label>
+                        <input
+                          id="student-school"
+                          type="text"
+                          value={newStudent.school}
+                          onChange={(e) => setNewStudent({...newStudent, school: e.target.value})}
+                          placeholder="e.g., XYZ College"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor="student-degree">Degree / class</label>
+                        <input
+                          id="student-degree"
+                          type="text"
+                          value={newStudent.degree}
+                          onChange={(e) => setNewStudent({...newStudent, degree: e.target.value})}
+                          placeholder="e.g., B.Tech, 12th, 10th"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor="student-year">Year</label>
+                        <input
+                          id="student-year"
+                          type="number"
+                          value={newStudent.year}
+                          onChange={(e) => setNewStudent({...newStudent, year: parseInt(e.target.value) || 0})}
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor="student-income">Annual income (₹)</label>
+                        <input
+                          id="student-income"
+                          type="number"
+                          min="0"
+                          value={newStudent.annual_income}
+                          onChange={(e) => setNewStudent({...newStudent, annual_income: parseFloat(e.target.value) || 0})}
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor="student-category">Category</label>
+                        <select
+                          id="student-category"
+                          value={newStudent.category}
+                          onChange={(e) => setNewStudent({...newStudent, category: e.target.value})}
+                        >
+                          <option value="GENERAL">General</option>
+                          <option value="GENERAL_GIRLS">General Girls</option>
+                          <option value="SC">SC</option>
+                          <option value="ST">ST</option>
+                          <option value="OBC">OBC</option>
+                          <option value="SOCIAL_SC">Social SC</option>
+                          <option value="SOCIAL_PWD">PWD</option>
+                        </select>
+                      </div>
+                      <div className="form-group full-width">
+                        <label htmlFor="student-disability">Disability percentage (%)</label>
+                        <input
+                          id="student-disability"
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={newStudent.disability_pct}
+                          onChange={(e) => setNewStudent({...newStudent, disability_pct: parseInt(e.target.value) || 0})}
+                        />
+                      </div>
                     </div>
-                  ))
-                )}
-              </div>
+                    <button type="submit" className="btn-primary" disabled={loading}>
+                      {loading ? 'Registering…' : 'Register student'}
+                    </button>
+                  </form>
+                </div>
+
+                <div className="card">
+                  <div className="card-header">
+                    <h2>Add scholarship</h2>
+                    <p>Add scholarship opportunities and their eligibility conditions.</p>
+                  </div>
+                  <form onSubmit={handleCreateScholarship}>
+                    <div className="form-grid">
+                      <div className="form-group full-width">
+                        <label htmlFor="scholarship-name">Scholarship name</label>
+                        <input
+                          id="scholarship-name"
+                          type="text"
+                          value={newScholarship.name}
+                          onChange={(e) => setNewScholarship({...newScholarship, name: e.target.value})}
+                          required
+                          placeholder="e.g., Central Sector Scheme"
+                        />
+                      </div>
+                      <div className="form-group full-width">
+                        <label htmlFor="scholarship-org">Organization</label>
+                        <input
+                          id="scholarship-org"
+                          type="text"
+                          value={newScholarship.org}
+                          onChange={(e) => setNewScholarship({...newScholarship, org: e.target.value})}
+                          required
+                          placeholder="e.g., MHRD / AICTE"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor="scholarship-category">Category</label>
+                        <select
+                          id="scholarship-category"
+                          value={newScholarship.category}
+                          onChange={(e) => setNewScholarship({...newScholarship, category: e.target.value})}
+                        >
+                          <option value="CENTRAL_GENERAL">Central General</option>
+                          <option value="STATE_GENERAL">State General</option>
+                          <option value="GENERAL_GIRLS">General Girls</option>
+                          <option value="SOCIAL_SC">Social SC</option>
+                          <option value="SOCIAL_ST">Social ST</option>
+                          <option value="SOCIAL_PWD">PWD</option>
+                          <option value="SCIENCE_RESEARCH">Science Research</option>
+                        </select>
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor="scholarship-deadline">Deadline</label>
+                        <input
+                          id="scholarship-deadline"
+                          type="date"
+                          value={newScholarship.deadline}
+                          onChange={(e) => setNewScholarship({...newScholarship, deadline: e.target.value})}
+                        />
+                      </div>
+                      <div className="form-group full-width">
+                        <label htmlFor="scholarship-criteria">Eligibility criteria</label>
+                        <textarea
+                          id="scholarship-criteria"
+                          value={newScholarship.eligibility_criteria}
+                          onChange={(e) => setNewScholarship({...newScholarship, eligibility_criteria: e.target.value})}
+                          rows="3"
+                          placeholder="e.g., Class 12 pass. Min 80% aggregate. Family annual income < INR 4.5 lakh."
+                        />
+                      </div>
+                      <div className="form-group full-width">
+                        <label htmlFor="scholarship-documents">Documents required</label>
+                        <input
+                          id="scholarship-documents"
+                          type="text"
+                          value={newScholarship.documents}
+                          onChange={(e) => setNewScholarship({...newScholarship, documents: e.target.value})}
+                          placeholder="e.g., income_certificate, marksheets, etc."
+                        />
+                      </div>
+                      <div className="form-group full-width">
+                        <label htmlFor="scholarship-url">Website URL</label>
+                        <input
+                          id="scholarship-url"
+                          type="url"
+                          value={newScholarship.url}
+                          onChange={(e) => setNewScholarship({...newScholarship, url: e.target.value})}
+                          placeholder="e.g., https://scholarships.gov.in"
+                        />
+                      </div>
+                    </div>
+                    <button type="submit" className="btn-primary" disabled={loading}>
+                      {loading ? 'Adding…' : 'Add scholarship'}
+                    </button>
+                  </form>
+                </div>
+              </section>
+
+              <section className="results-grid" aria-label="Eligibility results">
+                <div className="card">
+                  <div className="card-header">
+                    <h2>Check eligibility</h2>
+                    <p>Find scholarship opportunities based on a student's profile.</p>
+                  </div>
+                  {students.length === 0 ? (
+                    <div className="empty-state">
+                      <i className="ph ph-user-plus" aria-hidden="true"></i>
+                      <p>No student profiles yet.</p>
+                      <p>Register a student to start checking eligibility.</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="form-group">
+                        <label htmlFor="student-select">Select student</label>
+                        <select
+                          id="student-select"
+                          value={selectedStudent}
+                          onChange={(e) => setSelectedStudent(e.target.value)}
+                        >
+                          <option value="">-- Select a student --</option>
+                          {students.map((s) => (
+                            <option key={s.id} value={s.id}>
+                              {s.name} ({s.phone})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn-primary"
+                        onClick={getRecommendations}
+                        disabled={loading || !selectedStudent}
+                      >
+                        {loading ? 'Checking…' : 'Get recommendations'}
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                <div className="card">
+                  <div className="card-header">
+                    <h2>Recommended scholarships</h2>
+                    <p>Matches are ranked by eligibility score.</p>
+                  </div>
+                  {recommendations.length === 0 ? (
+                    <div className="empty-state">
+                      <i className="ph ph-magnifying-glass" aria-hidden="true"></i>
+                      <p>No recommendations yet.</p>
+                      <p>Select a student and click Get recommendations to find matching scholarships.</p>
+                    </div>
+                  ) : (
+                    <div className="scholarship-list">
+                      {recommendations.map((rec, idx) => {
+                        const details = rec.details || {};
+                        const score = rec.score || 0;
+                        return (
+                          <article key={idx} className="scholarship-item">
+                            <h3>{details.name || 'Scholarship'}</h3>
+                            {details.org && <div className="scholarship-org">{details.org}</div>}
+                            {details.deadline && <div className="scholarship-meta">Deadline: {details.deadline}</div>}
+                            {details.category && <div className="scholarship-meta">Category: {details.category}</div>}
+                            {details.eligibility_criteria && (
+                              <div className="scholarship-meta">{details.eligibility_criteria}</div>
+                            )}
+                            <div className="scholarship-meta">
+                              <span className={`score-badge ${getScoreClass(score)}`}>
+                                {score}% · {getScoreLabel(score)}
+                              </span>
+                            </div>
+                            {details.url && (
+                              <div className="scholarship-meta">
+                                <a href={details.url} target="_blank" rel="noreferrer">Official website ↗</a>
+                              </div>
+                            )}
+                          </article>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              <footer className="footer">
+                <p>Scholarship Eligibility Assistant · Student and scholarship management workspace</p>
+              </footer>
             </div>
           </div>
         );

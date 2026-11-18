@@ -32,13 +32,21 @@ def extract_entities(profile_text):
         if kw in text:
             results["year"] = {"first year": 1, "second year": 2, "2": 2, "3rd year": 3, "third year": 3}.get(kw, 2)
             break
-    # extract numeric ranges: income < 4.5 lakh -> 450000
+    # extract numeric ranges: income < INR 4.5 lakh -> 450000
     import re
-    m = re.search(r"income\s*\u003c\s*([a-z0-9.]+)\s*(?:lakh|cr|k|rs|rupees?)", text)
+    m = re.search(
+        r"income\s*<\s*(?:inr|rs\.?|\u20b9)?\s*([0-9]+(?:\.[0-9]+)?)\s*(lakh|lac|cr|crore|k)?",
+        text,
+    )
     if m:
-        val = float(m.group(1).replace("crore", "10000000").replace("cr", "1000000").replace(",", "").strip())
-        if "lakh" in text.lower():
-            val = val * 100000
+        val = float(m.group(1))
+        unit = (m.group(2) or "").lower()
+        if unit in ("lakh", "lac"):
+            val *= 100000
+        elif unit in ("cr", "crore"):
+            val *= 10000000
+        elif unit == "k":
+            val *= 1000
         results["income_ceiling"] = val
     # min percentage
     m = re.search(r"(\d+)%+", text)
@@ -91,8 +99,10 @@ def check_eligibility(student_id, limit=50):
     conn = db.get_db()
     students = conn.execute("SELECT * FROM students WHERE id = ?", (student_id,)).fetchone()
     if not students:
-        return {"error": "student not found"}, 404
+        return {"error": "student not found"}
     student = dict(students)
+    student_category = (student.get("category") or "").lower()
+    student_degree = str(student.get("degree") or "").lower()
     
     # Fetch relevant scholarships
     scholars = list_scholarships(limit=100)
@@ -102,25 +112,33 @@ def check_eligibility(student_id, limit=50):
         score = 0
         criteria = sc.get("eligibility_criteria", "").lower()
         # Hard rules
-        if student.get("category") in ("ww", "sc", "st"):
+        if student_category in ("ww", "sc", "st"):
             if "sc" in criteria or "st" in criteria:
                 score += 20
         # Category match
-        if student.get("category") and student.get("category") in criteria:
+        if student_category and student_category in criteria:
             score += 15
         # Income check
         if student.get("annual_income", 0) <= sc.get("income_ceil", 99999999):
             score += 12
         # Year/program check
-        if student.get("degree") in criteria:
+        if student_degree and student_degree in criteria:
             score += 10
-        # Parse criteria income ceiling
+        # Parse criteria income ceiling (handles "income < INR 4.5 lakh")
         import re
-        m = re.search(r"income\s*\u003c\s*([a-z0-9.]+)\s*(?:lakh|cr)?", criteria)
+        m = re.search(
+            r"income\s*<\s*(?:inr|rs\.?|\u20b9)?\s*([0-9]+(?:\.[0-9]+)?)\s*(lakh|lac|cr|crore|k)?",
+            criteria,
+        )
         if m:
-            ce = float(m.group(1).replace("crore","10000000").replace("cr","1000000").replace(",",""))
-            if "lakh" in criteria.lower():
-                ce = ce * 100000
+            ce = float(m.group(1))
+            unit = (m.group(2) or "").lower()
+            if unit in ("lakh", "lac"):
+                ce *= 100000
+            elif unit in ("cr", "crore"):
+                ce *= 10000000
+            elif unit == "k":
+                ce *= 1000
             if student.get("annual_income", 0) <= ce:
                 score += 10
         # Deadline urgency (within 30 days)
@@ -140,7 +158,7 @@ def check_eligibility(student_id, limit=50):
             if student.get("disability_pct", 0) >= 40:
                 score += 10
         # female-only
-        if "girl" in criteria and student.get("category") == "general_girls":
+        if "girl" in criteria and student_category == "general_girls":
             score += 10
         # min marks
         if student.get("degree") and student.get("degree") != "10th":

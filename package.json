@@ -1,5 +1,11 @@
-name: scholarship-assistant
-version: 0.1.0
-description: "Scholarship Eligibility Assistant - AI-driven matching platform"
-scripts:
-  dev: "cd src/backend && pip install fastapi uvicorn --break-system-packages && python -m uvicorn app.main:app"
+{
+  "name": "scholarship-assistant",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Scholarship Eligibility Assistant - AI-driven matching platform",
+  "scripts": {
+    "dev:backend": "python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 3000 --app-dir src/backend",
+    "dev:frontend": "npm --prefix src/frontend run dev",
+    "build": "npm --prefix src/frontend run build"
+  }
+}

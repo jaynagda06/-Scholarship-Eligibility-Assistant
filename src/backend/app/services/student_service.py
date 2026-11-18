@@ -32,6 +32,13 @@ def create_student(data):
     conn.commit()
     return cur.lastrowid
 
+def seed_if_empty():
+    conn = db.get_db()
+    count = conn.execute("SELECT COUNT(*) FROM students").fetchone()[0]
+    if count == 0:
+        seed_sample()
+
+
 def seed_sample():
     conn = db.get_db()
     conn.execute("DELETE FROM students")

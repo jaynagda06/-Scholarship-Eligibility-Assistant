@@ -45,6 +45,13 @@ def create_scholarship(data):
     return cur.lastrowid
 
 
+def seed_if_empty():
+    conn = db.get_db()
+    count = conn.execute("SELECT COUNT(*) FROM scholarships").fetchone()[0]
+    if count == 0:
+        seed_sample()
+
+
 def seed_sample():
     conn = db.get_db()
     conn.execute("DELETE FROM scholarships")
@@ -53,7 +60,6 @@ def seed_sample():
         INSERT INTO scholarships
         (name, org, category, eligibility_criteria, deadline, documents, url)
         VALUES
-        (
             ("Central Sector Scheme - College & University", "MHRD / AICTE", "CENTRAL_GENERAL",
              "Class 12 pass. Min 80% aggregate. Family annual income < INR 4.5 lakh.", "2026-10-31",
              "income_certificate, marksheets, admission_letter, caste_certificate", "https://scholarships.gov.in"),
@@ -69,7 +75,6 @@ def seed_sample():
             ("AICTE Saksham - PwD", "AICTE", "SOCIAL_PWD",
              "40% disability. Income < INR 8 lakh. 1st year diploma/tech.", "2026-10-31",
              "disability_certificate, income_certificate, ID_proof, admission_letter", "https://aicte-india.org")
-        )
     """
     )
     conn.commit()
