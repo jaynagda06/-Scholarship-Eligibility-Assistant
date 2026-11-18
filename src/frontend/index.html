@@ -647,6 +647,70 @@
       }
 
       /* ---------------------------------------------------------------
+         Masked word rise — display headings only
+      ---------------------------------------------------------------- */
+
+      /* Each word gets its own clipping box. The padding is clip room for
+         descenders, punctuation and the tight negative tracking's glyph
+         overhang; the matching negative margin cancels it again, so the line
+         box, the settled baseline and the line breaks never move. */
+      .word-mask {
+        display: inline-block;
+        overflow: hidden;
+        vertical-align: bottom;
+        padding: 0 var(--mask-x) var(--mask-pad);
+        margin: 0 calc(var(--mask-x) * -1) calc(var(--mask-pad) * -1);
+      }
+
+      .word-mask > span {
+        display: inline-block;
+        transform: translateY(calc(100% + var(--mask-pad)));
+        opacity: 0;
+      }
+
+      .split-head {
+        --mask-pad: 0.24em;
+        --mask-x: 0.1em;
+        --word-step: 50ms;
+      }
+
+      .split-head.is-in .word-mask > span {
+        animation-name: word-rise;
+        animation-duration: 0.9s;
+        animation-timing-function: var(--ease);
+        animation-delay: calc(var(--i, 0) * var(--word-step));
+        animation-fill-mode: both;
+      }
+
+      @keyframes word-rise {
+        from {
+          transform: translateY(calc(100% + var(--mask-pad)));
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .word-mask {
+          display: inline;
+          overflow: visible;
+          padding: 0;
+          margin: 0;
+          vertical-align: baseline;
+        }
+        .word-mask > span,
+        .split-head.is-in .word-mask > span {
+          display: inline;
+          transform: none;
+          opacity: 1;
+          animation: none;
+        }
+      }
+
+      /* ---------------------------------------------------------------
          Hero
       ---------------------------------------------------------------- */
 
@@ -2116,6 +2180,72 @@
           return () => io.disconnect();
         }, [students, scholarships, recommendations]);
 
+        // Masked word rise: each display heading plays once when it enters the
+        // viewport, then replays on hover. The hero is left to the loaded state
+        // below so it never animates behind the preloader.
+        useEffect(() => {
+          const heads = Array.from(document.querySelectorAll('.split-head'));
+          if (!heads.length) return;
+
+          if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            heads.forEach((el) => el.classList.add('is-in'));
+            return;
+          }
+
+          const replay = (el) => {
+            el.classList.remove('is-in');
+            void el.offsetWidth;
+            el.classList.add('is-in');
+          };
+
+          const io = new IntersectionObserver(
+            (entries) => {
+              entries.forEach((entry) => {
+                if (!entry.isIntersecting) return;
+                entry.target.classList.add('is-in');
+                io.unobserve(entry.target);
+              });
+            },
+            { threshold: 0.35 }
+          );
+
+          const cleanups = [];
+
+          heads.forEach((el) => {
+            if (el.dataset.split !== 'hero') io.observe(el);
+
+            const words = el.querySelectorAll('.word-mask');
+            if (!words.length) return;
+            const last = words[words.length - 1].firstElementChild;
+
+            // Hover replays, but only once the first play has settled.
+            const onEnter = () => {
+              if (el.dataset.ready === 'true') replay(el);
+            };
+            const onEnd = () => {
+              el.dataset.ready = 'true';
+            };
+            el.addEventListener('mouseenter', onEnter);
+            last.addEventListener('animationend', onEnd);
+            cleanups.push(() => {
+              el.removeEventListener('mouseenter', onEnter);
+              last.removeEventListener('animationend', onEnd);
+            });
+          });
+
+          return () => {
+            io.disconnect();
+            cleanups.forEach((fn) => fn());
+          };
+        }, []);
+
+        // The hero heading starts when the preloader curtain lifts.
+        useEffect(() => {
+          if (!loaded) return;
+          const hero = document.querySelector('.split-head[data-split="hero"]');
+          if (hero) hero.classList.add('is-in');
+        }, [loaded]);
+
         const fetchData = async () => {
           try {
             setError('');
@@ -2337,15 +2467,34 @@
                 </div>
 
                 <div className="hero-mid">
-                  <h1 className="display hero-tagline">
+                  <h1
+                    className="display hero-tagline split-head"
+                    data-split="hero"
+                    aria-label="Find the right scholarship"
+                  >
                     <span className="line-mask" style={{ '--d': 0 }}>
-                      <span>Find the</span>
+                      <span>
+                        <span className="word-mask" style={{ '--i': 0 }} aria-hidden="true">
+                          <span>Find</span>
+                        </span>{' '}
+                        <span className="word-mask" style={{ '--i': 1 }} aria-hidden="true">
+                          <span>the</span>
+                        </span>
+                      </span>
                     </span>
                     <span className="line-mask" style={{ '--d': 1 }}>
-                      <span>right</span>
+                      <span>
+                        <span className="word-mask" style={{ '--i': 2 }} aria-hidden="true">
+                          <span>right</span>
+                        </span>
+                      </span>
                     </span>
                     <span className="line-mask" style={{ '--d': 2 }}>
-                      <span>scholarship</span>
+                      <span>
+                        <span className="word-mask" style={{ '--i': 3 }} aria-hidden="true">
+                          <span>scholarship</span>
+                        </span>
+                      </span>
                     </span>
                   </h1>
                 </div>
@@ -2460,10 +2609,26 @@
                       <b>02</b> — Scholarship index
                     </span>
                   </div>
-                  <h2 className="h2">
-                    Every scheme,
+                  <h2
+                    className="h2 split-head"
+                    aria-label="Every scheme, in one place."
+                  >
+                    <span className="word-mask" style={{ '--i': 0 }} aria-hidden="true">
+                      <span>Every</span>
+                    </span>{' '}
+                    <span className="word-mask" style={{ '--i': 1 }} aria-hidden="true">
+                      <span>scheme,</span>
+                    </span>
                     <br />
-                    in one place.
+                    <span className="word-mask" style={{ '--i': 2 }} aria-hidden="true">
+                      <span>in</span>
+                    </span>{' '}
+                    <span className="word-mask" style={{ '--i': 3 }} aria-hidden="true">
+                      <span>one</span>
+                    </span>{' '}
+                    <span className="word-mask" style={{ '--i': 4 }} aria-hidden="true">
+                      <span>place.</span>
+                    </span>
                   </h2>
                   <p className="section-note">
                     The live catalogue the matching engine reads from. Hover a row to focus it;
@@ -2525,10 +2690,20 @@
                       <b>03</b> — Manage records
                     </span>
                   </div>
-                  <h2 className="h2">
-                    Add to the
+                  <h2 className="h2 split-head" aria-label="Add to the catalogue.">
+                    <span className="word-mask" style={{ '--i': 0 }} aria-hidden="true">
+                      <span>Add</span>
+                    </span>{' '}
+                    <span className="word-mask" style={{ '--i': 1 }} aria-hidden="true">
+                      <span>to</span>
+                    </span>{' '}
+                    <span className="word-mask" style={{ '--i': 2 }} aria-hidden="true">
+                      <span>the</span>
+                    </span>
                     <br />
-                    catalogue.
+                    <span className="word-mask" style={{ '--i': 3 }} aria-hidden="true">
+                      <span>catalogue.</span>
+                    </span>
                   </h2>
                   <p className="section-note">
                     Two records drive everything: a student profile to score, and a scholarship
@@ -2831,10 +3006,17 @@
                       <b>04</b> — Eligibility engine
                     </span>
                   </div>
-                  <h2 className="h2">
-                    Match a
+                  <h2 className="h2 split-head" aria-label="Match a profile.">
+                    <span className="word-mask" style={{ '--i': 0 }} aria-hidden="true">
+                      <span>Match</span>
+                    </span>{' '}
+                    <span className="word-mask" style={{ '--i': 1 }} aria-hidden="true">
+                      <span>a</span>
+                    </span>
                     <br />
-                    profile.
+                    <span className="word-mask" style={{ '--i': 2 }} aria-hidden="true">
+                      <span>profile.</span>
+                    </span>
                   </h2>
                   <p className="section-note">
                     Select a registered student and run the engine. Results return ranked by
