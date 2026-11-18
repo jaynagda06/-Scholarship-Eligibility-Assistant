@@ -3,710 +3,1859 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Scholarship Eligibility Assistant - Control Center</title>
+    <meta name="theme-color" content="#f0f0f0" />
+    <title>Scholarship Eligibility Assistant</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23f0f0f0'/%3E%3Crect x='1.5' y='1.5' width='13' height='13' fill='none' stroke='%230f0f0f'/%3E%3Cpath d='M1.5 1.5L14.5 14.5' stroke='%230f0f0f'/%3E%3C/svg%3E"
+    />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
     <script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.development.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.development.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.26.5/babel.min.js"></script>
-    <link href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css" rel="stylesheet" />
     <style>
-      :root {
-        --bg-primary: #f8fafc;
-        --bg-secondary: #ffffff;
-        --bg-card: #ffffff;
-        --bg-card-elevated: #ffffff;
-        --text-primary: #0f172a;
-        --text-secondary: #475569;
-        --text-muted: #64748b;
-        --border: #e2e8f0;
-        --border-subtle: #f1f5f9;
-        --action-primary-bg: #0f172a;
-        --action-primary-text: #ffffff;
-        --action-secondary-bg: #f1f5f9;
-        --action-secondary-text: #0f172a;
-        --success: #16a34a;
-        --warning: #d97706;
-        --error: #dc2626;
-        --info: #2563eb;
-        --radius-card: 20px;
-        --radius-control: 12px;
-        --radius-pill: 9999px;
-        --space-xs: 8px;
-        --space-sm: 12px;
-        --space-md: 16px;
-        --space-lg: 20px;
-        --space-xl: 24px;
-        --space-2xl: 32px;
-        --space-3xl: 40px;
-      }
-      
-      * {
+      /* ---------------------------------------------------------------
+         Scholarship Eligibility Assistant — editorial interface
+         Design language: hairline grid, monochrome palette, oversized
+         type, difference-blended chrome, slow ease-out motion.
+      ---------------------------------------------------------------- */
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
         margin: 0;
         padding: 0;
-        box-sizing: border-box;
       }
-      
-      body {
-        font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-          'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-          sans-serif;
-        background: radial-gradient(1200px 600px at 80% -10%, #eef2ff 0%, transparent 50%), var(--bg-primary);
-        min-height: 100vh;
-        color: var(--text-primary);
-        line-height: 1.7;
+
+      :root {
+        --paper: #f0f0f0;
+        --ink: #0f0f0f;
+
+        --bg: var(--paper);
+        --fg: var(--ink);
+        --line: rgba(15, 15, 15, 0.12);
+        --line-strong: rgba(15, 15, 15, 0.26);
+        --muted: rgba(15, 15, 15, 0.48);
+
+        --ease: cubic-bezier(0.25, 1, 0.5, 1);
+        --t: 0.5s var(--ease);
+        --t-fast: 0.3s var(--ease);
+        --t-slow: 0.8s var(--ease);
+
+        --pad: clamp(1rem, 2.4vw, 2.25rem);
+        --gap: clamp(0.75rem, 1.4vw, 1.25rem);
+
+        color-scheme: light;
+      }
+
+      :root[data-invert="true"] {
+        --bg: var(--ink);
+        --fg: var(--paper);
+        --line: rgba(242, 240, 240, 0.14);
+        --line-strong: rgba(242, 240, 240, 0.3);
+        --muted: rgba(242, 240, 240, 0.5);
+        color-scheme: dark;
+      }
+
+      html {
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
+        scroll-behavior: smooth;
+        background: var(--bg);
+      }
+
+      body {
+        background: var(--bg);
+        color: var(--fg);
+        font-family: "Inter Tight", "Helvetica Neue", Helvetica, Arial, sans-serif;
+        font-size: 16px;
+        font-weight: 400;
+        line-height: 1.25;
+        letter-spacing: -0.01em;
         overflow-x: hidden;
+        transition: background-color 0.6s var(--ease), color 0.6s var(--ease);
       }
-      body.custom-cursor {
-        cursor: none;
+
+      body:not(.is-loaded) {
+        overflow: hidden;
       }
-      .cursor {
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      button {
+        font: inherit;
+        color: inherit;
+        background: none;
+        border: 0;
+        cursor: pointer;
+      }
+
+      input,
+      select,
+      textarea {
+        font: inherit;
+        color: inherit;
+      }
+
+      img,
+      svg {
+        display: block;
+      }
+
+      ::selection {
+        background: var(--fg);
+        color: var(--bg);
+      }
+
+      /* ---------------------------------------------------------------
+         Typography
+      ---------------------------------------------------------------- */
+
+      .display {
+        font-size: clamp(2.75rem, 8.6vw, 8.75rem);
+        font-weight: 400;
+        line-height: 0.86;
+        letter-spacing: -0.055em;
+        text-transform: uppercase;
+      }
+
+      .h2 {
+        font-size: clamp(2rem, 5.4vw, 4.75rem);
+        font-weight: 400;
+        line-height: 0.92;
+        letter-spacing: -0.045em;
+      }
+
+      .h3 {
+        font-size: clamp(1.375rem, 2.5vw, 2.125rem);
+        font-weight: 400;
+        line-height: 1.04;
+        letter-spacing: -0.03em;
+      }
+
+      .cap {
+        display: inline-block;
+        font-size: 0.6875rem;
+        font-weight: 500;
+        line-height: 1.15;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+      }
+
+      .body-sm {
+        font-size: 0.9375rem;
+        line-height: 1.5;
+        letter-spacing: -0.005em;
+        color: var(--muted);
+      }
+
+      /* ---------------------------------------------------------------
+         Preloader
+      ---------------------------------------------------------------- */
+
+      .preloader {
+        position: fixed;
+        inset: 0;
+        z-index: 200;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: var(--pad);
+        background: var(--paper);
+        color: var(--ink);
+        transition: transform 0.9s var(--ease);
+        will-change: transform;
+      }
+
+      .preloader.is-done {
+        transform: translateY(-101%);
+      }
+
+      .preloader-inner {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 1rem;
+        flex: 1;
+        padding-bottom: 1rem;
+      }
+
+      .preloader-label {
+        font-size: 0.6875rem;
+        font-weight: 500;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        max-width: 12rem;
+        line-height: 1.2;
+      }
+
+      .preloader-count {
+        display: flex;
+        align-items: flex-start;
+        font-size: clamp(4rem, 13vw, 11rem);
+        line-height: 0.8;
+        letter-spacing: -0.06em;
+      }
+
+      .preloader-pct {
+        font-size: 0.28em;
+        line-height: 1;
+        margin-top: 0.25em;
+        margin-left: 0.1em;
+        letter-spacing: 0;
+      }
+
+      .preloader-track {
+        height: 1px;
+        width: 100%;
+        background: rgba(15, 15, 15, 0.14);
+        overflow: hidden;
+      }
+
+      .preloader-track span {
+        display: block;
+        height: 100%;
+        width: 100%;
+        background: var(--ink);
+        transform: scaleX(0);
+        transform-origin: left;
+      }
+
+      /* ---------------------------------------------------------------
+         Custom cursor
+      ---------------------------------------------------------------- */
+
+      .cursor,
+      .cursor-ring {
         position: fixed;
         top: 0;
         left: 0;
-        width: 14px;
-        height: 14px;
-        border-radius: 50%;
-        background: rgba(15, 23, 42, 0.85);
+        z-index: 300;
         pointer-events: none;
-        z-index: 10000;
+        border-radius: 50%;
         mix-blend-mode: difference;
-        transform: translate(-50%, -50%);
-        transition: width 0.18s ease, height 0.18s ease, background 0.18s ease, border 0.18s ease;
         will-change: transform;
       }
-      .cursor.follower {
-        width: 38px;
-        height: 38px;
-        background: transparent;
-        border: 1px solid rgba(15, 23, 42, 0.25);
-        mix-blend-mode: normal;
-        transition: width 0.25s ease, height 0.25s ease, transform 0.1s ease, border 0.25s ease;
+
+      .cursor {
+        width: 7px;
+        height: 7px;
+        margin: -3.5px 0 0 -3.5px;
+        background: #f2f0f0;
+        transition: width 0.25s var(--ease), height 0.25s var(--ease), margin 0.25s var(--ease),
+          opacity 0.3s var(--ease);
       }
-      .cursor.hover {
-        width: 24px;
-        height: 24px;
-        background: rgba(37, 99, 235, 0.9);
+
+      .cursor-ring {
+        width: 34px;
+        height: 34px;
+        margin: -17px 0 0 -17px;
+        border: 1px solid rgba(242, 240, 240, 0.65);
+        transition: width 0.4s var(--ease), height 0.4s var(--ease), margin 0.4s var(--ease),
+          opacity 0.3s var(--ease), border-color 0.4s var(--ease);
       }
-      .cursor.follower.hover {
-        width: 64px;
-        height: 64px;
-        border-color: rgba(37, 99, 235, 0.5);
+
+      .cursor.is-hover {
+        width: 12px;
+        height: 12px;
+        margin: -6px 0 0 -6px;
       }
-      @media (max-width: 768px), (pointer: coarse) {
-        body.custom-cursor { cursor: auto; }
-        .cursor, .cursor.follower { display: none; }
+
+      .cursor-ring.is-hover {
+        width: 62px;
+        height: 62px;
+        margin: -31px 0 0 -31px;
+        border-color: rgba(242, 240, 240, 0.35);
       }
-      
-      .app {
-        min-height: 100vh;
-        padding: var(--space-lg) var(--space-xl);
+
+      body.has-cursor,
+      body.has-cursor * {
+        cursor: none !important;
       }
-      
-      @media (max-width: 768px) {
-        .app {
-          padding: var(--space-md);
+
+      /* Keep the native caret/resize affordances on form fields. */
+      body.has-cursor input,
+      body.has-cursor textarea,
+      body.has-cursor select {
+        cursor: auto !important;
+      }
+
+      body.has-cursor textarea {
+        cursor: text !important;
+      }
+
+      @media (pointer: coarse), (max-width: 1023px) {
+        .cursor,
+        .cursor-ring {
+          display: none;
         }
       }
-      
-      .container {
-        max-width: 1440px;
-        margin: 0 auto;
+
+      /* ---------------------------------------------------------------
+         Fixed hairline grid
+      ---------------------------------------------------------------- */
+
+      .grid-lines {
+        position: fixed;
+        inset: 0;
+        z-index: 2;
+        pointer-events: none;
       }
-      
-      .header {
-        background: var(--bg-secondary);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-card);
-        padding: var(--space-xl);
-        margin-bottom: var(--space-2xl);
+
+      .grid-lines span {
+        position: absolute;
+        top: 0;
+        height: 100%;
+        width: 1px;
+        background: #f2f0f0;
+        opacity: 0.07;
+        mix-blend-mode: difference;
+      }
+
+      .grid-lines span:nth-child(1) {
+        left: 12.5%;
+      }
+
+      .grid-lines span:nth-child(2) {
+        left: 62.5%;
+      }
+
+      @media (max-width: 1023px) {
+        .grid-lines span:nth-child(1) {
+          left: 0;
+        }
+        .grid-lines span:nth-child(2) {
+          left: 50%;
+        }
+      }
+
+      /* ---------------------------------------------------------------
+         Header
+      ---------------------------------------------------------------- */
+
+      .site-header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 20;
+        color: #f2f0f0;
+        mix-blend-mode: difference;
+        pointer-events: none;
+      }
+
+      .header-bar {
+        position: relative;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: var(--space-lg);
-        flex-wrap: wrap;
-        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        gap: 1rem;
+        padding: 0.85rem var(--pad);
+        border-bottom: 1px solid rgba(242, 240, 240, 0.18);
+        pointer-events: auto;
       }
-      
-      .header:hover {
-        border-color: #33343A;
-      }
-      
-      .header-left {
+
+      .logo {
         display: flex;
         align-items: center;
-        gap: var(--space-md);
-      }
-      
-      .logo-icon {
-        width: 44px;
-        height: 44px;
-        background: linear-gradient(135deg, var(--bg-card-elevated) 0%, var(--bg-card) 100%);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-control);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 20px;
+        gap: 0.6rem;
         flex-shrink: 0;
       }
-      
-      .header-text h1 {
-        font-size: 20px;
-        font-weight: 600;
-        color: var(--text-primary);
-        margin-bottom: 2px;
-        letter-spacing: -0.02em;
+
+      .logo svg {
+        width: 15px;
+        height: 15px;
+        flex-shrink: 0;
       }
-      
-      .header-text p {
-        font-size: 12px;
-        color: var(--text-muted);
-        font-weight: 400;
+
+      .logo-text {
+        font-size: 0.625rem;
+        font-weight: 500;
+        line-height: 1.15;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
       }
-      
+
+      .header-nav {
+        display: flex;
+        align-items: center;
+        gap: clamp(1rem, 2.4vw, 2.5rem);
+      }
+
+      .header-nav a {
+        position: relative;
+        padding-bottom: 0.15rem;
+        font-size: 0.6875rem;
+        font-weight: 500;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+      }
+
+      .header-nav a::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        width: 100%;
+        height: 1px;
+        background: currentColor;
+        transform: scaleX(0);
+        transform-origin: right;
+        transition: transform 0.55s var(--ease);
+      }
+
+      .header-nav a:hover::after {
+        transform: scaleX(1);
+        transform-origin: left;
+      }
+
       .header-right {
         display: flex;
         align-items: center;
-        gap: var(--space-sm);
+        gap: clamp(0.75rem, 1.6vw, 1.5rem);
+        flex-shrink: 0;
       }
-      
-      .status-indicator {
-        display: flex;
-        align-items: center;
-        gap: var(--space-xs);
-        padding: var(--space-xs) var(--space-md);
-        background: var(--bg-card);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-pill);
-        font-size: 12px;
-        color: var(--text-secondary);
-        font-weight: 500;
-      }
-      
-      .status-dot {
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        background: var(--success);
-        box-shadow: 0 0 8px rgba(141, 216, 165, 0.6);
-      }
-      
-      .btn-refresh {
-        background: var(--action-secondary-bg);
-        color: var(--action-secondary-text);
-        border: 1px solid var(--border);
-        padding: var(--space-xs) var(--space-sm);
-        border-radius: var(--radius-control);
-        font-size: 12px;
-        font-weight: 500;
-        cursor: pointer;
-        font-family: 'Inter', sans-serif;
-        transition: background 0.2s ease, border-color 0.2s ease;
+
+      .status {
         display: inline-flex;
         align-items: center;
-        gap: 6px;
-      }
-      
-      .btn-refresh:hover {
-        background: #323338;
-        border-color: #33343A;
-      }
-      
-      .btn-refresh:focus-visible {
-        outline: 2px solid var(--info);
-        outline-offset: 2px;
-      }
-      
-      .overview {
-        margin-bottom: var(--space-2xl);
-      }
-      
-      .overview-grid {
-        display: grid;
-        grid-template-columns: 2fr 1fr;
-        gap: var(--space-xl);
-      }
-      
-      @media (max-width: 968px) {
-        .overview-grid {
-          grid-template-columns: 1fr;
-        }
-      }
-      
-      .overview-main {
-        background: var(--bg-card);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-card);
-        padding: var(--space-2xl);
-        transition: border-color 0.2s ease, box-shadow 0.2s ease;
-      }
-      
-      .overview-main:hover {
-        border-color: #33343A;
-      }
-      
-      .overview-eyebrow {
-        font-size: 11px;
-        font-weight: 600;
-        color: var(--text-muted);
-        text-transform: uppercase;
-        letter-spacing: 0.12em;
-        margin-bottom: var(--space-sm);
-      }
-      
-      .overview-main h2 {
-        font-size: 36px;
-        font-weight: 600;
-        color: var(--text-primary);
-        margin-bottom: var(--space-md);
-        letter-spacing: -0.02em;
-        line-height: 1.2;
-      }
-      
-      @media (max-width: 768px) {
-        .overview-main h2 {
-          font-size: 28px;
-        }
-      }
-      
-      .overview-main p {
-        font-size: 14px;
-        color: var(--text-secondary);
-        margin-bottom: var(--space-xl);
-        max-width: 540px;
-      }
-      
-      .overview-sidebar {
-        background: var(--bg-card);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-card);
-        padding: var(--space-2xl);
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        gap: var(--space-md);
-        transition: border-color 0.2s ease, box-shadow 0.2s ease;
-      }
-      
-      .overview-sidebar:hover {
-        border-color: #33343A;
-      }
-      
-      .overview-sidebar-label {
-        font-size: 12px;
-        color: var(--text-muted);
+        gap: 0.45rem;
+        font-size: 0.625rem;
         font-weight: 500;
-      }
-      
-      .overview-sidebar-value {
-        font-size: 48px;
-        font-weight: 600;
-        color: var(--text-primary);
-        letter-spacing: -0.02em;
-        line-height: 1;
-      }
-      
-      @media (max-width: 768px) {
-        .overview-sidebar-value {
-          font-size: 36px;
-        }
-      }
-      
-      .overview-sidebar-desc {
-        font-size: 12px;
-        color: var(--text-secondary);
-      }
-      
-      .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: var(--space-xl);
-        margin-bottom: var(--space-2xl);
-      }
-      
-      @media (max-width: 1024px) {
-        .stats-grid {
-          grid-template-columns: 1fr;
-        }
-      }
-      
-      .stat-card {
-        background: var(--bg-card);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-card);
-        padding: var(--space-2xl);
-        transition: border-color 0.2s ease, box-shadow 0.2s ease;
-      }
-      
-      .stat-card:hover {
-        border-color: #33343A;
-      }
-      
-      .stat-label {
-        font-size: 11px;
-        font-weight: 600;
-        color: var(--text-muted);
+        letter-spacing: 0.09em;
         text-transform: uppercase;
-        letter-spacing: 0.12em;
-        margin-bottom: var(--space-md);
+        white-space: nowrap;
       }
-      
-      .stat-value {
-        font-size: 56px;
-        font-weight: 600;
-        color: var(--text-primary);
-        margin-bottom: var(--space-sm);
-        letter-spacing: -0.02em;
-        line-height: 1;
+
+      .status-dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: currentColor;
+        animation: pulse 2.4s var(--ease) infinite;
       }
-      
-      @media (max-width: 768px) {
-        .stat-value {
-          font-size: 42px;
+
+      .status-dot.is-error {
+        animation: none;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.25;
         }
       }
-      
-      .stat-desc {
-        font-size: 12px;
-        color: var(--text-secondary);
+
+      .header-action {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding-bottom: 0.15rem;
+        position: relative;
+        font-size: 0.625rem;
+        font-weight: 500;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        white-space: nowrap;
       }
-      
-      .forms-grid {
+
+      .header-action::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        width: 100%;
+        height: 1px;
+        background: currentColor;
+        transform-origin: right;
+        transition: transform 0.55s var(--ease);
+      }
+
+      .header-action:hover::after {
+        transform: scaleX(0);
+      }
+
+      .scroll-progress {
+        position: absolute;
+        left: 0;
+        bottom: -1px;
+        width: 100%;
+        height: 1px;
+        background: currentColor;
+        transform: scaleX(0);
+        transform-origin: left;
+      }
+
+      @media (max-width: 900px) {
+        .header-nav {
+          display: none;
+        }
+      }
+
+      @media (max-width: 560px) {
+        .logo-text span {
+          display: none;
+        }
+      }
+      /* ---------------------------------------------------------------
+         Section shell
+      ---------------------------------------------------------------- */
+
+      .app {
+        position: relative;
+        z-index: 1;
+      }
+
+      .section {
+        position: relative;
+        border-top: 1px solid var(--line);
+        scroll-margin-top: 3.5rem;
+      }
+
+      .section--dark {
+        --bg: var(--ink);
+        --fg: var(--paper);
+        --line: rgba(242, 240, 240, 0.14);
+        --line-strong: rgba(242, 240, 240, 0.3);
+        --muted: rgba(242, 240, 240, 0.52);
+        background: var(--bg);
+        color: var(--fg);
+      }
+
+      :root[data-invert="true"] .section--dark {
+        --bg: var(--paper);
+        --fg: var(--ink);
+        --line: rgba(15, 15, 15, 0.12);
+        --line-strong: rgba(15, 15, 15, 0.26);
+        --muted: rgba(15, 15, 15, 0.48);
+      }
+
+      .section-head {
         display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: var(--space-xl);
-        margin-bottom: var(--space-2xl);
+        grid-template-columns: repeat(8, minmax(0, 1fr));
+        column-gap: var(--gap);
+        row-gap: 1.5rem;
+        padding: clamp(3.5rem, 8vw, 7rem) var(--pad) clamp(2rem, 4vw, 3.5rem);
       }
-      
-      @media (max-width: 1024px) {
-        .forms-grid {
-          grid-template-columns: 1fr;
+
+      .section-caption {
+        grid-column: 1 / 4;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        color: var(--muted);
+      }
+
+      .section-caption b {
+        font-weight: 500;
+        color: var(--fg);
+      }
+
+      .section-head .h2 {
+        grid-column: 1 / 7;
+      }
+
+      .section-head .section-note {
+        grid-column: 7 / 9;
+        align-self: end;
+        max-width: 22rem;
+        color: var(--muted);
+        font-size: 0.875rem;
+        line-height: 1.5;
+      }
+
+      @media (max-width: 1023px) {
+        .section-head {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+        .section-caption {
+          grid-column: 1 / -1;
+        }
+        .section-head .h2 {
+          grid-column: 1 / -1;
+        }
+        .section-head .section-note {
+          grid-column: 1 / -1;
+          max-width: none;
         }
       }
-      
-      .card {
-        background: var(--bg-card);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-card);
-        padding: var(--space-2xl);
-        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+      /* ---------------------------------------------------------------
+         Reveal
+      ---------------------------------------------------------------- */
+
+      [data-reveal] {
+        opacity: 0;
+        transform: translateY(26px);
+        transition: opacity 0.9s var(--ease), transform 0.9s var(--ease);
+        transition-delay: calc(var(--i, 0) * 70ms);
+      }
+
+      [data-reveal].in {
+        opacity: 1;
+        transform: none;
+      }
+
+      .line-mask {
+        display: block;
+        overflow: hidden;
+        padding-bottom: 0.04em;
+      }
+
+      .line-mask > span {
+        display: block;
+        transform: translateY(115%);
+        transition: transform 1.15s var(--ease);
+        transition-delay: calc(var(--d, 0) * 110ms);
+      }
+
+      .app.is-loaded .line-mask > span {
+        transform: translateY(0);
+      }
+
+      .hero-fade {
+        opacity: 0;
+        transition: opacity 1.1s var(--ease) 0.7s;
+      }
+
+      .app.is-loaded .hero-fade {
+        opacity: 1;
+      }
+
+      /* ---------------------------------------------------------------
+         Hero
+      ---------------------------------------------------------------- */
+
+      .hero {
+        position: relative;
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        min-height: 100vh;
+        min-height: 100svh;
+        padding: clamp(5rem, 12vh, 8rem) var(--pad) 1.25rem;
+        border-top: 0;
+      }
+
+      .hero-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1.5rem;
+      }
+
+      .hero-top .cap {
+        color: var(--muted);
+        max-width: 16rem;
+      }
+
+      .hero-top-right {
+        text-align: right;
+      }
+
+      .hero-mid {
+        display: flex;
+        align-items: flex-end;
+        justify-content: flex-end;
+        padding: clamp(2rem, 8vh, 6rem) 0;
+      }
+
+      .hero-tagline {
+        text-align: right;
+      }
+
+      .hero-bottom {
+        display: grid;
+        grid-template-columns: repeat(8, minmax(0, 1fr));
+        column-gap: var(--gap);
+        row-gap: 2rem;
+        align-items: end;
+        padding-top: 1rem;
+      }
+
+      .hero-desc {
+        grid-column: 1 / 4;
+        max-width: 22rem;
+      }
+
+      .hero-actions {
+        grid-column: 4 / 7;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+        align-items: center;
+      }
+
+      .scroll-cue {
+        grid-column: 8 / 9;
+        justify-self: end;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        color: var(--muted);
+      }
+
+      .scroll-cue i {
+        display: block;
+        width: 1px;
+        height: 46px;
+        background: linear-gradient(180deg, var(--line-strong), transparent);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .scroll-cue i::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 40%;
+        background: var(--fg);
+        animation: scroll-line 2.4s var(--ease) infinite;
+      }
+
+      @keyframes scroll-line {
+        0% {
+          transform: translateY(-100%);
+        }
+        60%,
+        100% {
+          transform: translateY(250%);
+        }
+      }
+
+      @media (max-width: 1023px) {
+        .hero-bottom {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+        .hero-desc {
+          grid-column: 1 / -1;
+        }
+        .hero-actions {
+          grid-column: 1 / -1;
+        }
+        .scroll-cue {
+          display: none;
+        }
+        .hero-top-right {
+          display: none;
+        }
+      }
+
+      /* ---------------------------------------------------------------
+         Marquee
+      ---------------------------------------------------------------- */
+
+      .marquee {
+        position: relative;
+        overflow: hidden;
+        border-top: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+        padding: 0.85rem 0;
+      }
+
+      .marquee-track {
+        display: flex;
+        width: max-content;
+        animation: marquee 34s linear infinite;
+      }
+
+      .marquee:hover .marquee-track {
+        animation-play-state: paused;
+      }
+
+      .marquee-group {
+        display: flex;
+        align-items: center;
+        flex-shrink: 0;
+      }
+
+      .marquee-group span {
+        display: inline-flex;
+        align-items: center;
+        gap: 1.5rem;
+        padding-right: 1.5rem;
+        font-size: 0.6875rem;
+        font-weight: 500;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+
+      .marquee-group span::after {
+        content: "";
+        width: 5px;
+        height: 5px;
+        background: currentColor;
+        opacity: 0.4;
+        transform: rotate(45deg);
+      }
+
+      @keyframes marquee {
+        to {
+          transform: translateX(-50%);
+        }
+      }
+
+      /* ---------------------------------------------------------------
+         Numbers
+      ---------------------------------------------------------------- */
+
+      .numbers {
+        border-top: 1px solid var(--line);
+      }
+
+      .numbers-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        padding: clamp(3rem, 6vw, 5rem) 0;
+      }
+
+      .number-cell {
+        padding: 0 var(--pad);
         display: flex;
         flex-direction: column;
-        height: fit-content;
+        gap: 1rem;
       }
-      
-      .card:hover {
-        border-color: #33343A;
+
+      .number-cell + .number-cell {
+        border-left: 1px solid var(--line);
       }
-      
-      .card-header {
-        margin-bottom: var(--space-xl);
+
+      .number-cell .cap {
+        color: var(--muted);
       }
-      
-      .card-header h2 {
-        font-size: 18px;
-        font-weight: 600;
-        color: var(--text-primary);
-        margin-bottom: var(--space-xs);
-        letter-spacing: -0.01em;
+
+      .number-value {
+        font-size: clamp(3.25rem, 8vw, 7rem);
+        line-height: 0.85;
+        letter-spacing: -0.06em;
+        font-variant-numeric: tabular-nums;
       }
-      
-      .card-header p {
-        font-size: 13px;
-        color: var(--text-secondary);
+
+      .number-desc {
+        font-size: 0.8125rem;
+        line-height: 1.4;
+        color: var(--muted);
+        max-width: 15rem;
       }
-      
+
+      @media (max-width: 1023px) {
+        .numbers-grid {
+          grid-template-columns: 1fr;
+        }
+        .number-cell {
+          padding: 1.75rem var(--pad);
+        }
+        .number-cell + .number-cell {
+          border-left: 0;
+          border-top: 1px solid var(--line);
+        }
+      }
+
+      /* ---------------------------------------------------------------
+         Method band
+      ---------------------------------------------------------------- */
+
+      .method {
+        border-top: 1px solid var(--line);
+        padding-bottom: clamp(2rem, 5vw, 4rem);
+      }
+
+      .method-row {
+        display: grid;
+        grid-template-columns: 3.5rem 1fr 24rem;
+        align-items: baseline;
+        column-gap: var(--gap);
+        padding: clamp(1.25rem, 2.5vw, 2rem) var(--pad);
+        border-top: 1px solid var(--line);
+        transition: background-color 0.5s var(--ease), color 0.5s var(--ease);
+      }
+
+      .method-row:hover {
+        background: var(--fg);
+        color: var(--bg);
+      }
+
+      .method-row:hover .method-index,
+      .method-row:hover .method-text {
+        color: inherit;
+      }
+
+      .method-index {
+        color: var(--muted);
+        transition: color 0.5s var(--ease);
+      }
+
+      .method-word {
+        font-size: clamp(2rem, 5.2vw, 4.5rem);
+        font-weight: 400;
+        line-height: 0.92;
+        letter-spacing: -0.045em;
+        text-transform: uppercase;
+        transition: transform 0.7s var(--ease);
+      }
+
+      .method-row:hover .method-word {
+        transform: translateX(0.75rem);
+      }
+
+      .method-text {
+        font-size: 0.875rem;
+        line-height: 1.5;
+        color: var(--muted);
+        transition: color 0.5s var(--ease);
+      }
+
+      @media (max-width: 1023px) {
+        .method-row {
+          grid-template-columns: 2.5rem 1fr;
+          row-gap: 0.75rem;
+        }
+        .method-text {
+          grid-column: 2 / -1;
+        }
+      }
+      /* ---------------------------------------------------------------
+         Scholarship index (dark)
+      ---------------------------------------------------------------- */
+
+      .index-list {
+        border-top: 1px solid var(--line);
+      }
+
+      .index-row {
+        position: relative;
+        display: grid;
+        grid-template-columns: 3.5rem minmax(0, 1fr) 12rem 9rem 8rem 2rem;
+        align-items: baseline;
+        column-gap: var(--gap);
+        padding: clamp(1.1rem, 2vw, 1.6rem) var(--pad);
+        border-bottom: 1px solid var(--line);
+        overflow: hidden;
+        transition: color 0.5s var(--ease);
+      }
+
+      .index-row::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: var(--fg);
+        transform: scaleY(0);
+        transform-origin: bottom;
+        transition: transform 0.65s var(--ease);
+        z-index: 0;
+      }
+
+      .index-row:hover::before {
+        transform: scaleY(1);
+      }
+
+      .index-row > * {
+        position: relative;
+        z-index: 1;
+        transition: color 0.5s var(--ease), transform 0.65s var(--ease);
+      }
+
+      .index-row:hover > * {
+        color: var(--bg);
+      }
+
+      .index-num {
+        color: var(--muted);
+      }
+
+      .index-row:hover .index-num {
+        color: inherit;
+      }
+
+      .index-name {
+        font-size: clamp(1.25rem, 2.2vw, 1.875rem);
+        font-weight: 400;
+        line-height: 1.05;
+        letter-spacing: -0.03em;
+        max-width: 30ch;
+      }
+
+      .index-row:hover .index-name {
+        transform: translateX(0.5rem);
+      }
+
+      .index-org,
+      .index-cat,
+      .index-deadline {
+        font-size: 0.75rem;
+        line-height: 1.35;
+        color: var(--muted);
+        letter-spacing: 0.01em;
+      }
+
+      .index-row:hover .index-org,
+      .index-row:hover .index-cat,
+      .index-row:hover .index-deadline {
+        color: inherit;
+        opacity: 0.72;
+      }
+
+      .index-arrow {
+        justify-self: end;
+        font-size: 0.875rem;
+        opacity: 0;
+        transform: translate(-6px, 6px);
+        transition: opacity 0.5s var(--ease), transform 0.5s var(--ease);
+      }
+
+      .index-row:hover .index-arrow {
+        opacity: 1;
+        transform: none;
+      }
+
+      .index-foot {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1.25rem var(--pad);
+        color: var(--muted);
+      }
+
+      @media (max-width: 1100px) {
+        .index-row {
+          grid-template-columns: 2.5rem minmax(0, 1fr) 2rem;
+          row-gap: 0.5rem;
+        }
+        .index-org,
+        .index-cat,
+        .index-deadline {
+          grid-column: 2 / 3;
+        }
+        .index-cat,
+        .index-deadline {
+          display: inline;
+        }
+        .index-org {
+          margin-top: 0.25rem;
+        }
+        .index-arrow {
+          grid-column: 3 / 4;
+          grid-row: 1;
+        }
+      }
+
+      /* ---------------------------------------------------------------
+         Accordion
+      ---------------------------------------------------------------- */
+
+      .accordion {
+        border-top: 1px solid var(--line);
+      }
+
+      .acc-item {
+        border-bottom: 1px solid var(--line);
+      }
+
+      .acc-head {
+        display: grid;
+        grid-template-columns: 3.5rem minmax(0, 1fr) 14rem 1.5rem;
+        align-items: center;
+        column-gap: var(--gap);
+        width: 100%;
+        text-align: left;
+        padding: clamp(1.25rem, 2.4vw, 1.9rem) var(--pad);
+        transition: background-color 0.5s var(--ease);
+      }
+
+      .acc-head:hover {
+        background: color-mix(in srgb, var(--fg) 4%, transparent);
+      }
+
+      .acc-index {
+        color: var(--muted);
+      }
+
+      .acc-title {
+        font-size: clamp(1.25rem, 2.6vw, 2rem);
+        font-weight: 400;
+        letter-spacing: -0.035em;
+        line-height: 1.05;
+        transition: transform 0.65s var(--ease);
+      }
+
+      .acc-head:hover .acc-title {
+        transform: translateX(0.5rem);
+      }
+
+      .acc-meta {
+        color: var(--muted);
+        font-size: 0.75rem;
+        line-height: 1.35;
+        text-align: right;
+      }
+
+      .acc-plus {
+        position: relative;
+        width: 16px;
+        height: 16px;
+        justify-self: end;
+      }
+
+      .acc-plus i {
+        position: absolute;
+        background: currentColor;
+        transition: transform 0.65s var(--ease);
+      }
+
+      .acc-plus i:first-child {
+        left: 0;
+        top: 7.5px;
+        width: 16px;
+        height: 1px;
+      }
+
+      .acc-plus i:last-child {
+        left: 7.5px;
+        top: 0;
+        width: 1px;
+        height: 16px;
+      }
+
+      .acc-item.is-open .acc-plus i:last-child {
+        transform: rotate(90deg);
+      }
+
+      .acc-body {
+        display: grid;
+        grid-template-rows: 0fr;
+        transition: grid-template-rows 0.75s var(--ease);
+      }
+
+      .acc-item.is-open .acc-body {
+        grid-template-rows: 1fr;
+      }
+
+      .acc-body-inner {
+        overflow: hidden;
+        min-height: 0;
+      }
+
+      .acc-content {
+        padding: 0 var(--pad) clamp(2rem, 4vw, 3.5rem);
+      }
+
+      @media (max-width: 1023px) {
+        .acc-head {
+          grid-template-columns: 2.5rem minmax(0, 1fr) 1.5rem;
+        }
+        .acc-meta {
+          display: none;
+        }
+      }
+
+      /* ---------------------------------------------------------------
+         Forms
+      ---------------------------------------------------------------- */
+
       .form-grid {
         display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: var(--space-md);
-        margin-bottom: var(--space-lg);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        column-gap: clamp(1.5rem, 4vw, 4rem);
+        row-gap: clamp(1.5rem, 2.6vw, 2.25rem);
+        padding-top: clamp(1rem, 2vw, 1.5rem);
+        margin-bottom: clamp(1.75rem, 3vw, 2.5rem);
+        max-width: 62rem;
       }
-      
-      @media (max-width: 600px) {
+
+      .field {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+      }
+
+      .field--full {
+        grid-column: 1 / -1;
+      }
+
+      .field label {
+        font-size: 0.625rem;
+        font-weight: 500;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .field input,
+      .field select,
+      .field textarea {
+        width: 100%;
+        background: transparent;
+        border: 0;
+        border-bottom: 1px solid var(--line-strong);
+        border-radius: 0;
+        outline: none;
+        padding: 0.45rem 0;
+        font-size: 0.9375rem;
+        letter-spacing: -0.005em;
+        transition: border-color 0.4s var(--ease);
+      }
+
+      .field textarea {
+        resize: vertical;
+        min-height: 4.5rem;
+        line-height: 1.45;
+      }
+
+      .field input:focus,
+      .field select:focus,
+      .field textarea:focus {
+        border-color: var(--fg);
+      }
+
+      .field input::placeholder,
+      .field textarea::placeholder {
+        color: var(--muted);
+        opacity: 0.7;
+      }
+
+      .field select {
+        appearance: none;
+        -webkit-appearance: none;
+        padding-right: 1.5rem;
+      }
+
+      .field select option {
+        background: var(--paper);
+        color: var(--ink);
+      }
+
+      .field--select::after {
+        content: "";
+        position: absolute;
+        right: 0.15rem;
+        bottom: 0.95rem;
+        width: 6px;
+        height: 6px;
+        border-right: 1px solid currentColor;
+        border-bottom: 1px solid currentColor;
+        transform: rotate(45deg);
+        opacity: 0.6;
+        pointer-events: none;
+      }
+
+      @media (max-width: 720px) {
         .form-grid {
           grid-template-columns: 1fr;
         }
       }
-      
-      .form-group {
-        display: flex;
-        flex-direction: column;
-        gap: var(--space-xs);
-      }
-      
-      .form-group.full-width {
-        grid-column: 1 / -1;
-      }
-      
-      .form-group label {
-        font-size: 12px;
+
+      /* ---------------------------------------------------------------
+         Buttons
+      ---------------------------------------------------------------- */
+
+      .btn-line {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding-bottom: 0.2rem;
+        font-size: 0.6875rem;
         font-weight: 500;
-        color: var(--text-secondary);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
       }
-      
-      .form-group input,
-      .form-group select,
-      .form-group textarea {
-        background: var(--bg-secondary);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-control);
-        padding: 10px 12px;
-        font-size: 14px;
-        color: var(--text-primary);
-        font-family: 'Inter', sans-serif;
-        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+      .btn-line::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        bottom: 0;
         width: 100%;
+        height: 1px;
+        background: currentColor;
+        transform-origin: right;
+        transition: transform 0.6s var(--ease);
       }
-      
-      .form-group input:hover,
-      .form-group select:hover,
-      .form-group textarea:hover {
-        border-color: #33343A;
+
+      .btn-line:hover::after {
+        transform: scaleX(0);
       }
-      
-      .form-group input:focus,
-      .form-group select:focus,
-      .form-group textarea:focus {
-        outline: none;
-        border-color: var(--info);
-        box-shadow: 0 0 0 3px rgba(169, 184, 255, 0.1);
+
+      .btn-solid {
+        display: inline-flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: clamp(2rem, 5vw, 4rem);
+        padding: 0.9rem 1.1rem;
+        background: var(--fg);
+        color: var(--bg);
+        font-size: 0.6875rem;
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        box-shadow: inset 0 0 0 1px var(--fg);
+        transition: background-color 0.45s var(--ease), color 0.45s var(--ease);
       }
-      
-      .form-group textarea {
-        resize: vertical;
-        min-height: 80px;
-        font-family: 'Inter', sans-serif;
+
+      .btn-solid:hover:not(:disabled) {
+        background: transparent;
+        color: var(--fg);
       }
-      
-      .form-group input::placeholder,
-      .form-group textarea::placeholder {
-        color: var(--text-muted);
-      }
-      
-      .btn-primary {
-        background: var(--action-primary-bg);
-        color: var(--action-primary-text);
-        border: 1px solid var(--action-primary-bg);
-        padding: 11px 20px;
-        border-radius: var(--radius-control);
-        font-size: 13px;
-        font-weight: 600;
-        cursor: pointer;
-        font-family: 'Inter', sans-serif;
-        transition: opacity 0.2s ease, transform 0.2s ease;
-        align-self: flex-start;
-        margin-top: var(--space-md);
-      }
-      
-      .btn-primary:hover:not(:disabled) {
-        opacity: 0.9;
-        transform: translateY(-1px);
-      }
-      
-      .btn-primary:active:not(:disabled) {
-        transform: translateY(0);
-      }
-      
-      .btn-primary:disabled {
+
+      .btn-solid:disabled {
         opacity: 0.4;
         cursor: not-allowed;
       }
-      
-      .btn-primary:focus-visible {
-        outline: 2px solid var(--info);
-        outline-offset: 2px;
+
+      .btn-solid i {
+        display: block;
+        font-style: normal;
+        transition: transform 0.5s var(--ease);
       }
-      
-      .results-grid {
+
+      .btn-solid:hover:not(:disabled) i {
+        transform: translateX(0.35rem);
+      }
+      /* ---------------------------------------------------------------
+         Match / recommendations
+      ---------------------------------------------------------------- */
+
+      .match-controls {
+        display: flex;
+        align-items: flex-end;
+        flex-wrap: wrap;
+        gap: clamp(1.25rem, 3vw, 2.5rem);
+        padding: 0 var(--pad) clamp(2rem, 4vw, 3rem);
+      }
+
+      .match-controls .field {
+        flex: 1 1 20rem;
+        max-width: 34rem;
+      }
+
+      .rank-list {
+        border-top: 1px solid var(--line);
+      }
+
+      .rank-row {
         display: grid;
-        grid-template-columns: 4fr 8fr;
-        gap: var(--space-xl);
-        margin-bottom: var(--space-2xl);
+        grid-template-columns: 3.5rem minmax(0, 1fr) 6.5rem 2rem;
+        align-items: center;
+        column-gap: var(--gap);
+        padding: clamp(1.1rem, 2vw, 1.6rem) var(--pad);
+        border-bottom: 1px solid var(--line);
       }
-      
-      @media (max-width: 1024px) {
-        .results-grid {
-          grid-template-columns: 1fr;
+
+      .rank-num {
+        color: var(--muted);
+        align-self: start;
+        padding-top: 0.35rem;
+      }
+
+      .rank-main {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+        min-width: 0;
+      }
+
+      .rank-name {
+        font-size: clamp(1.1rem, 1.9vw, 1.6rem);
+        font-weight: 400;
+        line-height: 1.1;
+        letter-spacing: -0.03em;
+      }
+
+      .rank-meta {
+        font-size: 0.75rem;
+        line-height: 1.4;
+        color: var(--muted);
+        letter-spacing: 0.01em;
+      }
+
+      .rank-criteria {
+        font-size: 0.8125rem;
+        line-height: 1.45;
+        color: var(--muted);
+        max-width: 62ch;
+      }
+
+      .score-bar {
+        position: relative;
+        height: 1px;
+        width: 100%;
+        max-width: 46rem;
+        background: var(--line);
+        margin-top: 0.5rem;
+      }
+
+      .score-bar span {
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: var(--w, 0%);
+        height: 1px;
+        background: var(--fg);
+        transform: scaleX(0);
+        transform-origin: left;
+        transition: transform 1.3s var(--ease) 0.15s;
+      }
+
+      .rank-row.in .score-bar span {
+        transform: scaleX(1);
+      }
+
+      .rank-score {
+        justify-self: end;
+        display: flex;
+        align-items: flex-start;
+        font-size: clamp(1.5rem, 3vw, 2.5rem);
+        line-height: 0.9;
+        letter-spacing: -0.05em;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .rank-score em {
+        font-style: normal;
+        font-size: 0.36em;
+        line-height: 1;
+        margin-top: 0.25em;
+        margin-left: 0.1em;
+        letter-spacing: 0;
+        color: var(--muted);
+      }
+
+      .rank-link {
+        justify-self: end;
+        font-size: 0.875rem;
+        opacity: 0.45;
+        transition: opacity 0.4s var(--ease), transform 0.4s var(--ease);
+      }
+
+      .rank-link:hover {
+        opacity: 1;
+        transform: translate(2px, -2px);
+      }
+
+      @media (max-width: 900px) {
+        .rank-row {
+          grid-template-columns: 2.5rem minmax(0, 1fr) 4.5rem;
+        }
+        .rank-link {
+          display: none;
         }
       }
-      
+
+      /* ---------------------------------------------------------------
+         Alerts + empty states
+      ---------------------------------------------------------------- */
+
       .alert {
-        padding: 12px 16px;
-        border-radius: var(--radius-control);
-        font-size: 13px;
-        margin-bottom: var(--space-lg);
-        border: 1px solid var(--border);
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: var(--space-md);
-        flex-wrap: wrap;
+        gap: 1rem;
+        padding: 0.9rem var(--pad);
+        background: var(--fg);
+        color: var(--bg);
+        border-top: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+        font-size: 0.8125rem;
+        line-height: 1.4;
       }
-      
-      .alert-error {
-        background: rgba(241, 138, 138, 0.1);
-        color: var(--error);
-        border-color: rgba(241, 138, 138, 0.3);
+
+      .alert strong {
+        font-weight: 500;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        font-size: 0.625rem;
+        display: block;
+        margin-bottom: 0.15rem;
+        opacity: 0.6;
       }
-      
-      .alert-success {
-        background: rgba(141, 216, 165, 0.1);
-        color: var(--success);
-        border-color: rgba(141, 216, 165, 0.3);
+
+      .alert-close {
+        flex-shrink: 0;
+        font-size: 0.625rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        padding-bottom: 0.15rem;
+        border-bottom: 1px solid currentColor;
+        opacity: 0.7;
+        transition: opacity 0.3s var(--ease);
       }
-      
-      .scholarship-list {
+
+      .alert-close:hover {
+        opacity: 1;
+      }
+
+      .empty {
+        display: grid;
+        gap: 0.6rem;
+        padding: clamp(2.5rem, 6vw, 5rem) var(--pad);
+        border-top: 1px solid var(--line);
+      }
+
+      .empty-index {
+        font-size: clamp(2.5rem, 7vw, 5rem);
+        line-height: 0.9;
+        letter-spacing: -0.06em;
+        color: var(--line-strong);
+      }
+
+      .empty p {
+        font-size: 0.9375rem;
+        color: var(--muted);
+        max-width: 34rem;
+        line-height: 1.5;
+      }
+
+      /* ---------------------------------------------------------------
+         Footer
+      ---------------------------------------------------------------- */
+
+      .site-footer {
+        position: relative;
+        border-top: 1px solid var(--line);
+        padding: clamp(3rem, 7vw, 6rem) var(--pad) 1.5rem;
+      }
+
+      .footer-big {
+        font-size: clamp(2.5rem, 8.6vw, 8.5rem);
+        font-weight: 400;
+        line-height: 0.86;
+        letter-spacing: -0.055em;
+        text-transform: uppercase;
+      }
+
+      .footer-big .line-mask > span {
+        transition-delay: calc(var(--d, 0) * 90ms);
+      }
+
+      .footer-meta {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        column-gap: var(--gap);
+        row-gap: 1.5rem;
+        margin-top: clamp(3rem, 6vw, 5rem);
+        padding-top: 1.25rem;
+        border-top: 1px solid var(--line);
+      }
+
+      .footer-meta div {
         display: flex;
         flex-direction: column;
-        gap: var(--space-md);
-        max-height: 500px;
-        overflow-y: auto;
-        padding-right: var(--space-xs);
+        gap: 0.35rem;
       }
-      
-      .scholarship-list::-webkit-scrollbar {
-        width: 8px;
+
+      .footer-meta .cap {
+        color: var(--muted);
       }
-      
-      .scholarship-list::-webkit-scrollbar-track {
-        background: var(--bg-secondary);
-        border-radius: var(--radius-control);
+
+      .footer-meta p,
+      .footer-meta a {
+        font-size: 0.8125rem;
+        line-height: 1.4;
       }
-      
-      .scholarship-list::-webkit-scrollbar-thumb {
-        background: var(--border);
-        border-radius: var(--radius-control);
-      }
-      
-      .scholarship-item {
-        background: var(--bg-secondary);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-control);
-        padding: var(--space-lg);
-        transition: border-color 0.2s ease, box-shadow 0.2s ease;
-      }
-      
-      .scholarship-item:hover {
-        border-color: #33343A;
-      }
-      
-      .scholarship-item h3 {
-        font-size: 15px;
-        font-weight: 600;
-        color: var(--text-primary);
-        margin-bottom: var(--space-xs);
-        letter-spacing: -0.01em;
-      }
-      
-      .scholarship-org {
-        font-size: 13px;
-        color: var(--info);
-        margin-bottom: var(--space-sm);
-        font-weight: 500;
-      }
-      
-      .scholarship-meta {
-        font-size: 12px;
-        color: var(--text-secondary);
-        margin-bottom: 6px;
-      }
-      
-      .scholarship-meta:last-of-type {
-        margin-bottom: var(--space-sm);
-      }
-      
-      .scholarship-item a {
-        color: var(--info);
-        text-decoration: none;
-        font-weight: 500;
-      }
-      
-      .scholarship-item a:hover {
-        text-decoration: underline;
-      }
-      
-      .score-badge {
-        display: inline-flex;
+
+      .footer-legal {
+        display: flex;
         align-items: center;
-        padding: 6px 12px;
-        border-radius: var(--radius-pill);
-        font-size: 11px;
-        font-weight: 600;
-        border: 1px solid var(--border);
+        justify-content: space-between;
+        gap: 1rem;
+        margin-top: clamp(2rem, 4vw, 3rem);
+        font-size: 0.6875rem;
+        letter-spacing: 0.04em;
+        color: var(--muted);
       }
-      
-      .score-high {
-        background: rgba(141, 216, 165, 0.1);
-        color: var(--success);
-        border-color: rgba(141, 216, 165, 0.3);
+
+      @media (max-width: 900px) {
+        .footer-meta {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .footer-legal {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 0.5rem;
+        }
       }
-      
-      .score-medium {
-        background: rgba(242, 200, 121, 0.1);
-        color: var(--warning);
-        border-color: rgba(242, 200, 121, 0.3);
+
+      /* ---------------------------------------------------------------
+         Fixed chrome: section nav + invert
+      ---------------------------------------------------------------- */
+
+      .section-nav {
+        position: fixed;
+        right: var(--pad);
+        bottom: 1.1rem;
+        z-index: 20;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 0.4rem;
+        color: #f2f0f0;
+        mix-blend-mode: difference;
       }
-      
-      .score-low {
-        background: rgba(241, 138, 138, 0.1);
-        color: var(--error);
-        border-color: rgba(241, 138, 138, 0.3);
+
+      .section-nav a {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.625rem;
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        opacity: 0.4;
+        transition: opacity 0.45s var(--ease);
       }
-      
-      .empty-state {
-        text-align: center;
-        padding: var(--space-3xl);
-        color: var(--text-muted);
-        font-size: 13px;
+
+      .section-nav a:hover,
+      .section-nav a.is-active {
+        opacity: 1;
       }
-      .empty-state i {
+
+      .section-nav a i {
         display: block;
-        font-size: 28px;
-        margin-bottom: var(--space-sm);
-        color: var(--text-muted);
+        width: 18px;
+        height: 1px;
+        background: currentColor;
+        transform: scaleX(0);
+        transform-origin: right;
+        transition: transform 0.5s var(--ease);
       }
-      .empty-state p {
-        margin-bottom: 4px;
+
+      .section-nav a.is-active i {
+        transform: scaleX(1);
       }
-      
-      .footer {
-        margin-top: var(--space-3xl);
-        padding-top: var(--space-xl);
-        border-top: 1px solid var(--border-subtle);
-        text-align: center;
+
+      .invert-btn {
+        position: fixed;
+        left: var(--pad);
+        bottom: 1.1rem;
+        z-index: 20;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #f2f0f0;
+        mix-blend-mode: difference;
+        font-size: 0.625rem;
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
       }
-      
-      .footer p {
-        font-size: 11px;
-        color: var(--text-muted);
+
+      .invert-btn svg {
+        width: 15px;
+        height: 15px;
       }
-      
+
+      .invert-btn .underline {
+        display: block;
+        height: 1px;
+        width: 100%;
+        background: currentColor;
+        margin-top: 0.2rem;
+        transform-origin: right;
+        transition: transform 0.5s var(--ease);
+      }
+
+      .invert-btn:hover .underline {
+        transform: scaleX(0);
+      }
+
+      @media (max-width: 720px) {
+        .section-nav {
+          display: none;
+        }
+        .invert-btn span {
+          display: none;
+        }
+      }
+
+      /* ---------------------------------------------------------------
+         Reduced motion
+      ---------------------------------------------------------------- */
+
       @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
         *,
         *::before,
         *::after {
-          animation-duration: 0.01ms !important;
+          animation-duration: 0.001ms !important;
           animation-iteration-count: 1 !important;
-          transition-duration: 0.01ms !important;
+          transition-duration: 0.001ms !important;
+        }
+        [data-reveal] {
+          opacity: 1;
+          transform: none;
+        }
+        .line-mask > span {
+          transform: none;
+        }
+        .hero-fade {
+          opacity: 1;
         }
       }
     </style>
   </head>
   <body>
-    <div class="cursor"></div>
-    <div class="cursor follower"></div>
+    <div class="cursor" aria-hidden="true"></div>
+    <div class="cursor-ring" aria-hidden="true"></div>
+
+    <div class="grid-lines" aria-hidden="true">
+      <span></span>
+      <span></span>
+    </div>
+
+    <div class="preloader" id="preloader" aria-hidden="true">
+      <div class="preloader-inner">
+        <div class="preloader-label">Scholarship<br />Eligibility Assistant</div>
+        <div class="preloader-count">
+          <span id="pl-count">0</span><span class="preloader-pct">%</span>
+        </div>
+      </div>
+      <div class="preloader-track"><span id="pl-bar"></span></div>
+    </div>
+
     <div id="root"></div>
+    <script>
+      // Preloader runs before React so the page is never blank while the
+      // CDN bundles download and Babel compiles the JSX.
+      (function () {
+        var preloader = document.getElementById("preloader");
+        var count = document.getElementById("pl-count");
+        var bar = document.getElementById("pl-bar");
+        var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        var duration = reduce ? 200 : 1500;
+        var start = performance.now();
+
+        function finish() {
+          preloader.classList.add("is-done");
+          document.body.classList.add("is-loaded");
+          window.__preloaderDone = true;
+          window.dispatchEvent(new Event("preloader:done"));
+          window.setTimeout(function () {
+            preloader.style.display = "none";
+          }, 1100);
+        }
+
+        function tick(now) {
+          var p = Math.min((now - start) / duration, 1);
+          var eased = 1 - Math.pow(1 - p, 3);
+          count.textContent = Math.round(eased * 100);
+          bar.style.transform = "scaleX(" + eased + ")";
+          if (p < 1) {
+            requestAnimationFrame(tick);
+          } else {
+            finish();
+          }
+        }
+
+        requestAnimationFrame(tick);
+      })();
+    </script>
 
     <script type="text/babel">
-      const { useState, useEffect, useRef } = React;
+      const { useState, useEffect, useRef, useCallback } = React;
 
       // Same-origin API on Vercel (Services routing) and proxied by Vite locally.
       const API_BASE = '/api';
+
+      const SECTIONS = [
+        { id: 'overview', label: 'Overview' },
+        { id: 'index', label: 'Index' },
+        { id: 'register', label: 'Register' },
+        { id: 'match', label: 'Match' }
+      ];
+
+      const METHOD = [
+        {
+          word: 'Collect',
+          text: 'A student profile captures income, category, degree and disability — the signals every scheme is scored against.'
+        },
+        {
+          word: 'Score',
+          text: 'Each scholarship is parsed into rules, then measured against the profile to produce a single eligibility figure.'
+        },
+        {
+          word: 'Rank',
+          text: 'Matches return ordered by fit, so the strongest opportunities surface first with the reasoning attached.'
+        }
+      ];
+
+      const pad2 = (n) => String(n).padStart(2, '0');
+
+      function useInView(threshold) {
+        const ref = useRef(null);
+        const [inView, setInView] = useState(false);
+
+        useEffect(() => {
+          const el = ref.current;
+          if (!el) return;
+          if (!('IntersectionObserver' in window)) {
+            setInView(true);
+            return;
+          }
+          const io = new IntersectionObserver(
+            (entries) => {
+              entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                  setInView(true);
+                  io.disconnect();
+                }
+              });
+            },
+            { threshold: threshold || 0.4 }
+          );
+          io.observe(el);
+          return () => io.disconnect();
+        }, []);
+
+        return [ref, inView];
+      }
+
+      function Counter({ value }) {
+        const [ref, inView] = useInView(0.5);
+        const [display, setDisplay] = useState(0);
+
+        useEffect(() => {
+          if (!inView) return;
+          const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+          if (reduce) {
+            setDisplay(value);
+            return;
+          }
+          let frame;
+          let start;
+          const step = (now) => {
+            if (!start) start = now;
+            const p = Math.min((now - start) / 1400, 1);
+            const eased = 1 - Math.pow(1 - p, 3);
+            setDisplay(Math.round(eased * value));
+            if (p < 1) frame = requestAnimationFrame(step);
+          };
+          frame = requestAnimationFrame(step);
+          return () => cancelAnimationFrame(frame);
+        }, [inView, value]);
+
+        return (
+          <span ref={ref} className="number-value">
+            {pad2(display)}
+          </span>
+        );
+      }
 
       function App() {
         const [students, setStudents] = useState([]);
@@ -716,7 +1865,11 @@
         const [loading, setLoading] = useState(false);
         const [error, setError] = useState('');
         const [success, setSuccess] = useState('');
-        
+        const [loaded, setLoaded] = useState(false);
+        const [activeSection, setActiveSection] = useState('overview');
+        const [inverted, setInverted] = useState(false);
+        const [openPanel, setOpenPanel] = useState('student');
+
         const [newStudent, setNewStudent] = useState({
           phone: '',
           name: '',
@@ -738,53 +1891,153 @@
           url: ''
         });
 
+        const progressRef = useRef(null);
+
         useEffect(() => {
           fetchData();
         }, []);
 
-        // Custom cursor: a single delegated listener set, cleaned up on unmount.
+        // Reveal the hero once the preloader curtain has lifted.
+        useEffect(() => {
+          let raf1;
+          let raf2;
+          const go = () => {
+            raf1 = requestAnimationFrame(() => {
+              raf2 = requestAnimationFrame(() => setLoaded(true));
+            });
+          };
+          if (window.__preloaderDone) {
+            go();
+          } else {
+            window.addEventListener('preloader:done', go, { once: true });
+          }
+          return () => {
+            cancelAnimationFrame(raf1);
+            cancelAnimationFrame(raf2);
+            window.removeEventListener('preloader:done', go);
+          };
+        }, []);
+
+        // Custom cursor: one lerped ring + one dot, cleaned up on unmount.
         useEffect(() => {
           const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
           const coarsePointer = window.matchMedia('(pointer: coarse)').matches;
           if (reduceMotion || coarsePointer) return;
 
-          const cursor = document.querySelector('.cursor');
-          const follower = document.querySelector('.cursor.follower');
-          if (!cursor || !follower) return;
+          const dot = document.querySelector('.cursor');
+          const ring = document.querySelector('.cursor-ring');
+          if (!dot || !ring) return;
 
-          document.body.classList.add('custom-cursor');
+          document.body.classList.add('has-cursor');
+
+          let mx = window.innerWidth / 2;
+          let my = window.innerHeight / 2;
+          let rx = mx;
+          let ry = my;
+          let frame;
 
           const move = (e) => {
-            cursor.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
-            follower.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
+            mx = e.clientX;
+            my = e.clientY;
+            dot.style.transform = 'translate3d(' + mx + 'px,' + my + 'px,0)';
           };
+
+          const loop = () => {
+            rx += (mx - rx) * 0.16;
+            ry += (my - ry) * 0.16;
+            ring.style.transform = 'translate3d(' + rx + 'px,' + ry + 'px,0)';
+            frame = requestAnimationFrame(loop);
+          };
+
           const isInteractive = (target) =>
             target instanceof Element &&
-            target.closest('button, a, input, select, textarea, .card, .stat-card');
+            target.closest('a, button, input, select, textarea, .index-row, .method-row');
+
           const over = (e) => {
             if (isInteractive(e.target)) {
-              cursor.classList.add('hover');
-              follower.classList.add('hover');
+              dot.classList.add('is-hover');
+              ring.classList.add('is-hover');
             }
           };
+
           const out = (e) => {
             if (isInteractive(e.target)) {
-              cursor.classList.remove('hover');
-              follower.classList.remove('hover');
+              dot.classList.remove('is-hover');
+              ring.classList.remove('is-hover');
             }
           };
 
           window.addEventListener('mousemove', move, { passive: true });
           document.addEventListener('mouseover', over);
           document.addEventListener('mouseout', out);
+          frame = requestAnimationFrame(loop);
 
           return () => {
-            document.body.classList.remove('custom-cursor');
+            document.body.classList.remove('has-cursor');
             window.removeEventListener('mousemove', move);
             document.removeEventListener('mouseover', over);
             document.removeEventListener('mouseout', out);
+            cancelAnimationFrame(frame);
           };
         }, []);
+
+        // Scroll progress line in the header.
+        useEffect(() => {
+          const onScroll = () => {
+            const doc = document.documentElement;
+            const max = doc.scrollHeight - doc.clientHeight;
+            const p = max > 0 ? Math.min(doc.scrollTop / max, 1) : 0;
+            if (progressRef.current) {
+              progressRef.current.style.transform = 'scaleX(' + p + ')';
+            }
+          };
+          onScroll();
+          window.addEventListener('scroll', onScroll, { passive: true });
+          window.addEventListener('resize', onScroll);
+          return () => {
+            window.removeEventListener('scroll', onScroll);
+            window.removeEventListener('resize', onScroll);
+          };
+        }, []);
+
+        // Track which section owns the viewport.
+        useEffect(() => {
+          const els = SECTIONS.map((s) => document.getElementById(s.id)).filter(Boolean);
+          if (!els.length || !('IntersectionObserver' in window)) return;
+          const io = new IntersectionObserver(
+            (entries) => {
+              entries.forEach((entry) => {
+                if (entry.isIntersecting) setActiveSection(entry.target.id);
+              });
+            },
+            { rootMargin: '-45% 0px -45% 0px', threshold: 0 }
+          );
+          els.forEach((el) => io.observe(el));
+          return () => io.disconnect();
+        }, []);
+
+        // Reveal anything with [data-reveal] as it enters the viewport.
+        useEffect(() => {
+          const nodes = Array.from(document.querySelectorAll('[data-reveal]:not(.in)'));
+          if (!nodes.length) return;
+          if (!('IntersectionObserver' in window)) {
+            nodes.forEach((n) => n.classList.add('in'));
+            return;
+          }
+          const io = new IntersectionObserver(
+            (entries) => {
+              entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                  entry.target.classList.add('in');
+                  io.unobserve(entry.target);
+                }
+              });
+            },
+            { rootMargin: '0px 0px -10% 0px', threshold: 0.06 }
+          );
+          nodes.forEach((n) => io.observe(n));
+          return () => io.disconnect();
+        }, [students, scholarships, recommendations]);
 
         const fetchData = async () => {
           try {
@@ -818,7 +2071,7 @@
           setLoading(true);
           setError('');
           setSuccess('');
-          
+
           try {
             const res = await fetch(`${API_BASE}/students`, {
               method: 'POST',
@@ -827,7 +2080,7 @@
               },
               body: JSON.stringify(newStudent)
             });
-            
+
             if (res.ok) {
               setSuccess('Student created successfully');
               setNewStudent({
@@ -856,7 +2109,7 @@
           setLoading(true);
           setError('');
           setSuccess('');
-          
+
           try {
             const res = await fetch(`${API_BASE}/scholarships`, {
               method: 'POST',
@@ -865,7 +2118,7 @@
               },
               body: JSON.stringify(newScholarship)
             });
-            
+
             if (res.ok) {
               setSuccess('Scholarship created successfully');
               setNewScholarship({
@@ -893,11 +2146,11 @@
             setError('Please select a student');
             return;
           }
-          
+
           setLoading(true);
           setError('');
           setSuccess('');
-          
+
           try {
             const res = await fetch(`${API_BASE}/students/${selectedStudent}/eligibility`, {
               method: 'POST',
@@ -905,7 +2158,7 @@
                 'Content-Type': 'application/json'
               }
             });
-            
+
             if (res.ok) {
               const data = await res.json();
               setRecommendations(data.matches || []);
@@ -920,377 +2173,764 @@
           }
         };
 
-        const getScoreClass = (score) => {
-          if (score >= 70) return 'score-high';
-          if (score >= 40) return 'score-medium';
-          return 'score-low';
+        const getScoreLabel = (score) => {
+          if (score >= 70) return 'Strong match';
+          if (score >= 40) return 'Partial match';
+          return 'Low match';
         };
 
-        const getScoreLabel = (score) => {
-          if (score >= 70) return 'Good Match';
-          if (score >= 40) return 'Partial Match';
-          return 'Low Match';
+        const toggleInvert = useCallback(() => {
+          setInverted((prev) => {
+            const next = !prev;
+            document.documentElement.dataset.invert = next ? 'true' : '';
+            return next;
+          });
+        }, []);
+
+        const scrollToId = (id) => {
+          const el = document.getElementById(id);
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
         };
+
+        const marqueeWords = [
+          'Eligibility',
+          'Recommendation',
+          'Verification',
+          'Student profiles',
+          'Scholarship index',
+          'Matching engine'
+        ];
 
         return (
-          <div className="app">
-            <div className="container">
-              <header className="header">
-                <div className="header-left">
-                  <div className="logo-icon" aria-hidden="true">
-                    <i className="ph ph-graduation-cap"></i>
-                  </div>
-                  <div className="header-text">
-                    <h1>Scholarship Eligibility Assistant</h1>
-                    <p>Scholarship management workspace</p>
-                  </div>
-                </div>
+          <div className={'app' + (loaded ? ' is-loaded' : '')}>
+            <header className="site-header">
+              <div className="header-bar">
+                <a
+                  className="logo"
+                  href="#overview"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    scrollToId('overview');
+                  }}
+                >
+                  <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <rect x="0.5" y="0.5" width="15" height="15" stroke="currentColor" />
+                    <path d="M0.5 0.5L15.5 15.5" stroke="currentColor" />
+                  </svg>
+                  <span className="logo-text">
+                    Scholarship<span> Eligibility</span>
+                  </span>
+                </a>
+
+                <nav className="header-nav" aria-label="Sections">
+                  {SECTIONS.map((s) => (
+                    <a
+                      key={s.id}
+                      href={'#' + s.id}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        scrollToId(s.id);
+                      }}
+                    >
+                      {s.label}
+                    </a>
+                  ))}
+                </nav>
+
                 <div className="header-right">
-                  <div className="status-indicator" role="status" aria-live="polite">
-                    <span className="status-dot" aria-hidden="true"></span>
-                    <span>{error ? 'Connection issue' : 'Live'}</span>
-                  </div>
-                  <button type="button" className="btn-refresh" onClick={fetchData} aria-label="Refresh dashboard data">
-                    <i className="ph ph-arrow-clockwise" aria-hidden="true"></i>
-                    <span>Refresh</span>
+                  <span className="status" role="status" aria-live="polite">
+                    <span className={'status-dot' + (error ? ' is-error' : '')} aria-hidden="true"></span>
+                    <span>{error ? 'Offline' : 'Live'}</span>
+                  </span>
+                  <button type="button" className="header-action" onClick={fetchData}>
+                    Refresh
                   </button>
                 </div>
-              </header>
+              </div>
+              <div className="scroll-progress" ref={progressRef} aria-hidden="true"></div>
+            </header>
 
-              <section className="overview" aria-labelledby="overview-title">
-                <div className="overview-grid">
-                  <div className="overview-main">
-                    <div className="overview-eyebrow">Scholarship workspace</div>
-                    <h2 id="overview-title">Find the right scholarship.</h2>
-                    <p>Manage student profiles, explore available scholarships, and discover opportunities based on eligibility.</p>
+            <main>
+              <section className="hero" id="overview">
+                <div className="hero-top hero-fade">
+                  <p className="cap">Student &amp; scholarship management workspace</p>
+                  <p className="cap hero-top-right">
+                    {pad2(students.length)} students / {pad2(scholarships.length)} schemes
+                  </p>
+                </div>
+
+                <div className="hero-mid">
+                  <h1 className="display hero-tagline">
+                    <span className="line-mask" style={{ '--d': 0 }}>
+                      <span>Find the</span>
+                    </span>
+                    <span className="line-mask" style={{ '--d': 1 }}>
+                      <span>right</span>
+                    </span>
+                    <span className="line-mask" style={{ '--d': 2 }}>
+                      <span>scholarship</span>
+                    </span>
+                  </h1>
+                </div>
+
+                <div className="hero-bottom hero-fade">
+                  <p className="body-sm hero-desc">
+                    Register a student profile, score every scheme against it, and read the
+                    matches ranked by fit.
+                  </p>
+                  <div className="hero-actions">
                     <button
                       type="button"
-                      className="btn-primary"
-                      onClick={() => document.getElementById('student-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                      className="btn-solid"
+                      onClick={() => scrollToId('register')}
                     >
-                      Register a student
+                      Register a student <i>↗</i>
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-line"
+                      onClick={() => scrollToId('match')}
+                    >
+                      Match a profile
                     </button>
                   </div>
-                  <div className="overview-sidebar">
-                    <div className="overview-sidebar-label">Available scholarships</div>
-                    <div className="overview-sidebar-value">{scholarships.length}</div>
-                    <div className="overview-sidebar-desc">Active scholarship records ready for matching</div>
+                  <div className="scroll-cue" aria-hidden="true">
+                    <span className="cap">Scroll</span>
+                    <i></i>
                   </div>
                 </div>
               </section>
+
+              <div className="marquee" aria-hidden="true">
+                <div className="marquee-track">
+                  <div className="marquee-group">
+                    {marqueeWords.map((w) => (
+                      <span key={'a-' + w}>{w}</span>
+                    ))}
+                  </div>
+                  <div className="marquee-group">
+                    {marqueeWords.map((w) => (
+                      <span key={'b-' + w}>{w}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
 
               {error && (
-                <div className="alert alert-error" role="alert">
+                <div className="alert" role="alert">
                   <div>
-                    <strong>Unable to load dashboard data.</strong>
+                    <strong>Notice</strong>
                     <div>{error}</div>
                   </div>
-                  <button type="button" className="btn-refresh" onClick={fetchData}>Try again</button>
+                  <button
+                    type="button"
+                    className="alert-close"
+                    onClick={() => setError('')}
+                  >
+                    Dismiss
+                  </button>
                 </div>
               )}
-              {success && <div className="alert alert-success" role="status">{success}</div>}
+              {success && (
+                <div className="alert" role="status">
+                  <div>
+                    <strong>Confirmed</strong>
+                    <div>{success}</div>
+                  </div>
+                  <button
+                    type="button"
+                    className="alert-close"
+                    onClick={() => setSuccess('')}
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              )}
 
-              <section className="stats-grid" aria-label="Dashboard statistics">
-                <div className="stat-card">
-                  <div className="stat-label">Students registered</div>
-                  <div className="stat-value">{students.length}</div>
-                  <div className="stat-desc">Registered student profiles</div>
-                </div>
-                <div className="stat-card">
-                  <div className="stat-label">Scholarships available</div>
-                  <div className="stat-value">{scholarships.length}</div>
-                  <div className="stat-desc">Available scholarship records</div>
-                </div>
-                <div className="stat-card">
-                  <div className="stat-label">Recommendations</div>
-                  <div className="stat-value">{recommendations.length}</div>
-                  <div className="stat-desc">Generated eligibility recommendations</div>
+              <section className="numbers" aria-label="Dashboard statistics">
+                <div className="numbers-grid">
+                  <div className="number-cell">
+                    <span className="cap">Students registered</span>
+                    <Counter value={students.length} />
+                    <span className="number-desc">Profiles available for eligibility scoring.</span>
+                  </div>
+                  <div className="number-cell">
+                    <span className="cap">Scholarships indexed</span>
+                    <Counter value={scholarships.length} />
+                    <span className="number-desc">Live records ready to be matched.</span>
+                  </div>
+                  <div className="number-cell">
+                    <span className="cap">Recommendations</span>
+                    <Counter value={recommendations.length} />
+                    <span className="number-desc">Matches generated in this session.</span>
+                  </div>
                 </div>
               </section>
 
-              <section className="forms-grid" aria-label="Manage records">
-                <div className="card" id="student-form">
-                  <div className="card-header">
-                    <h2>Register student</h2>
-                    <p>Create a student profile for scholarship eligibility checks.</p>
+              <section className="method" aria-label="How matching works">
+                {METHOD.map((m, i) => (
+                  <div className="method-row" key={m.word} data-reveal style={{ '--i': i }}>
+                    <span className="cap method-index">{pad2(i + 1)}</span>
+                    <h3 className="method-word">{m.word}</h3>
+                    <p className="method-text">{m.text}</p>
                   </div>
-                  <form onSubmit={handleCreateStudent}>
-                    <div className="form-grid">
-                      <div className="form-group">
-                        <label htmlFor="student-phone">Phone number</label>
-                        <input
-                          id="student-phone"
-                          type="tel"
-                          value={newStudent.phone}
-                          onChange={(e) => setNewStudent({...newStudent, phone: e.target.value})}
-                          required
-                          placeholder="e.g., 9876543210"
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label htmlFor="student-name">Full name</label>
-                        <input
-                          id="student-name"
-                          type="text"
-                          value={newStudent.name}
-                          onChange={(e) => setNewStudent({...newStudent, name: e.target.value})}
-                          required
-                          placeholder="e.g., Ravi Kumar"
-                        />
-                      </div>
-                      <div className="form-group full-width">
-                        <label htmlFor="student-school">School / college</label>
-                        <input
-                          id="student-school"
-                          type="text"
-                          value={newStudent.school}
-                          onChange={(e) => setNewStudent({...newStudent, school: e.target.value})}
-                          placeholder="e.g., XYZ College"
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label htmlFor="student-degree">Degree / class</label>
-                        <input
-                          id="student-degree"
-                          type="text"
-                          value={newStudent.degree}
-                          onChange={(e) => setNewStudent({...newStudent, degree: e.target.value})}
-                          placeholder="e.g., B.Tech, 12th, 10th"
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label htmlFor="student-year">Year</label>
-                        <input
-                          id="student-year"
-                          type="number"
-                          value={newStudent.year}
-                          onChange={(e) => setNewStudent({...newStudent, year: parseInt(e.target.value) || 0})}
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label htmlFor="student-income">Annual income (₹)</label>
-                        <input
-                          id="student-income"
-                          type="number"
-                          min="0"
-                          value={newStudent.annual_income}
-                          onChange={(e) => setNewStudent({...newStudent, annual_income: parseFloat(e.target.value) || 0})}
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label htmlFor="student-category">Category</label>
-                        <select
-                          id="student-category"
-                          value={newStudent.category}
-                          onChange={(e) => setNewStudent({...newStudent, category: e.target.value})}
-                        >
-                          <option value="GENERAL">General</option>
-                          <option value="GENERAL_GIRLS">General Girls</option>
-                          <option value="SC">SC</option>
-                          <option value="ST">ST</option>
-                          <option value="OBC">OBC</option>
-                          <option value="SOCIAL_SC">Social SC</option>
-                          <option value="SOCIAL_PWD">PWD</option>
-                        </select>
-                      </div>
-                      <div className="form-group full-width">
-                        <label htmlFor="student-disability">Disability percentage (%)</label>
-                        <input
-                          id="student-disability"
-                          type="number"
-                          min="0"
-                          max="100"
-                          value={newStudent.disability_pct}
-                          onChange={(e) => setNewStudent({...newStudent, disability_pct: parseInt(e.target.value) || 0})}
-                        />
-                      </div>
-                    </div>
-                    <button type="submit" className="btn-primary" disabled={loading}>
-                      {loading ? 'Registering…' : 'Register student'}
-                    </button>
-                  </form>
-                </div>
-
-                <div className="card">
-                  <div className="card-header">
-                    <h2>Add scholarship</h2>
-                    <p>Add scholarship opportunities and their eligibility conditions.</p>
-                  </div>
-                  <form onSubmit={handleCreateScholarship}>
-                    <div className="form-grid">
-                      <div className="form-group full-width">
-                        <label htmlFor="scholarship-name">Scholarship name</label>
-                        <input
-                          id="scholarship-name"
-                          type="text"
-                          value={newScholarship.name}
-                          onChange={(e) => setNewScholarship({...newScholarship, name: e.target.value})}
-                          required
-                          placeholder="e.g., Central Sector Scheme"
-                        />
-                      </div>
-                      <div className="form-group full-width">
-                        <label htmlFor="scholarship-org">Organization</label>
-                        <input
-                          id="scholarship-org"
-                          type="text"
-                          value={newScholarship.org}
-                          onChange={(e) => setNewScholarship({...newScholarship, org: e.target.value})}
-                          required
-                          placeholder="e.g., MHRD / AICTE"
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label htmlFor="scholarship-category">Category</label>
-                        <select
-                          id="scholarship-category"
-                          value={newScholarship.category}
-                          onChange={(e) => setNewScholarship({...newScholarship, category: e.target.value})}
-                        >
-                          <option value="CENTRAL_GENERAL">Central General</option>
-                          <option value="STATE_GENERAL">State General</option>
-                          <option value="GENERAL_GIRLS">General Girls</option>
-                          <option value="SOCIAL_SC">Social SC</option>
-                          <option value="SOCIAL_ST">Social ST</option>
-                          <option value="SOCIAL_PWD">PWD</option>
-                          <option value="SCIENCE_RESEARCH">Science Research</option>
-                        </select>
-                      </div>
-                      <div className="form-group">
-                        <label htmlFor="scholarship-deadline">Deadline</label>
-                        <input
-                          id="scholarship-deadline"
-                          type="date"
-                          value={newScholarship.deadline}
-                          onChange={(e) => setNewScholarship({...newScholarship, deadline: e.target.value})}
-                        />
-                      </div>
-                      <div className="form-group full-width">
-                        <label htmlFor="scholarship-criteria">Eligibility criteria</label>
-                        <textarea
-                          id="scholarship-criteria"
-                          value={newScholarship.eligibility_criteria}
-                          onChange={(e) => setNewScholarship({...newScholarship, eligibility_criteria: e.target.value})}
-                          rows="3"
-                          placeholder="e.g., Class 12 pass. Min 80% aggregate. Family annual income < INR 4.5 lakh."
-                        />
-                      </div>
-                      <div className="form-group full-width">
-                        <label htmlFor="scholarship-documents">Documents required</label>
-                        <input
-                          id="scholarship-documents"
-                          type="text"
-                          value={newScholarship.documents}
-                          onChange={(e) => setNewScholarship({...newScholarship, documents: e.target.value})}
-                          placeholder="e.g., income_certificate, marksheets, etc."
-                        />
-                      </div>
-                      <div className="form-group full-width">
-                        <label htmlFor="scholarship-url">Website URL</label>
-                        <input
-                          id="scholarship-url"
-                          type="url"
-                          value={newScholarship.url}
-                          onChange={(e) => setNewScholarship({...newScholarship, url: e.target.value})}
-                          placeholder="e.g., https://scholarships.gov.in"
-                        />
-                      </div>
-                    </div>
-                    <button type="submit" className="btn-primary" disabled={loading}>
-                      {loading ? 'Adding…' : 'Add scholarship'}
-                    </button>
-                  </form>
-                </div>
+                ))}
               </section>
-
-              <section className="results-grid" aria-label="Eligibility results">
-                <div className="card">
-                  <div className="card-header">
-                    <h2>Check eligibility</h2>
-                    <p>Find scholarship opportunities based on a student's profile.</p>
+              <section className="section section--dark" id="index">
+                <div className="section-head">
+                  <div className="section-caption">
+                    <span className="cap">
+                      <b>02</b> — Scholarship index
+                    </span>
                   </div>
-                  {students.length === 0 ? (
-                    <div className="empty-state">
-                      <i className="ph ph-user-plus" aria-hidden="true"></i>
-                      <p>No student profiles yet.</p>
-                      <p>Register a student to start checking eligibility.</p>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="form-group">
-                        <label htmlFor="student-select">Select student</label>
-                        <select
-                          id="student-select"
-                          value={selectedStudent}
-                          onChange={(e) => setSelectedStudent(e.target.value)}
-                        >
-                          <option value="">-- Select a student --</option>
-                          {students.map((s) => (
-                            <option key={s.id} value={s.id}>
-                              {s.name} ({s.phone})
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <button
-                        type="button"
-                        className="btn-primary"
-                        onClick={getRecommendations}
-                        disabled={loading || !selectedStudent}
+                  <h2 className="h2">
+                    Every scheme,
+                    <br />
+                    in one place.
+                  </h2>
+                  <p className="section-note">
+                    The live catalogue the matching engine reads from. Hover a row to focus it;
+                    each record carries its own criteria, deadline and source.
+                  </p>
+                </div>
+
+                {scholarships.length === 0 ? (
+                  <div className="empty">
+                    <span className="empty-index">00</span>
+                    <p>No scholarships indexed yet. Add one below to start building the catalogue.</p>
+                  </div>
+                ) : (
+                  <div className="index-list">
+                    {scholarships.map((s, i) => (
+                      <article
+                        className="index-row"
+                        key={s.id || i}
+                        data-reveal
+                        style={{ '--i': Math.min(i, 6) }}
                       >
-                        {loading ? 'Checking…' : 'Get recommendations'}
-                      </button>
-                    </>
-                  )}
-                </div>
-
-                <div className="card">
-                  <div className="card-header">
-                    <h2>Recommended scholarships</h2>
-                    <p>Matches are ranked by eligibility score.</p>
+                        <span className="cap index-num">{pad2(i + 1)}</span>
+                        <h3 className="index-name">{s.name || 'Untitled scholarship'}</h3>
+                        <span className="index-org">{s.org || '—'}</span>
+                        <span className="index-cat cap">
+                          {(s.category || '').replace(/_/g, ' ') || '—'}
+                        </span>
+                        <span className="index-deadline cap">{s.deadline || 'Rolling'}</span>
+                        {s.url ? (
+                          <a
+                            className="index-arrow"
+                            href={s.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            aria-label={'Open ' + (s.name || 'scholarship')}
+                          >
+                            ↗
+                          </a>
+                        ) : (
+                          <span className="index-arrow" aria-hidden="true">
+                            ↗
+                          </span>
+                        )}
+                      </article>
+                    ))}
                   </div>
-                  {recommendations.length === 0 ? (
-                    <div className="empty-state">
-                      <i className="ph ph-magnifying-glass" aria-hidden="true"></i>
-                      <p>No recommendations yet.</p>
-                      <p>Select a student and click Get recommendations to find matching scholarships.</p>
-                    </div>
-                  ) : (
-                    <div className="scholarship-list">
-                      {recommendations.map((rec, idx) => {
-                        const details = rec.details || {};
-                        const score = rec.score || 0;
-                        return (
-                          <article key={idx} className="scholarship-item">
-                            <h3>{details.name || 'Scholarship'}</h3>
-                            {details.org && <div className="scholarship-org">{details.org}</div>}
-                            {details.deadline && <div className="scholarship-meta">Deadline: {details.deadline}</div>}
-                            {details.category && <div className="scholarship-meta">Category: {details.category}</div>}
-                            {details.eligibility_criteria && (
-                              <div className="scholarship-meta">{details.eligibility_criteria}</div>
-                            )}
-                            <div className="scholarship-meta">
-                              <span className={`score-badge ${getScoreClass(score)}`}>
-                                {score}% · {getScoreLabel(score)}
-                              </span>
-                            </div>
-                            {details.url && (
-                              <div className="scholarship-meta">
-                                <a href={details.url} target="_blank" rel="noreferrer">Official website ↗</a>
-                              </div>
-                            )}
-                          </article>
-                        );
-                      })}
-                    </div>
-                  )}
+                )}
+
+                <div className="index-foot">
+                  <span className="cap">{pad2(scholarships.length)} records</span>
+                  <span className="cap">Source: live API</span>
                 </div>
               </section>
 
-              <footer className="footer">
-                <p>Scholarship Eligibility Assistant · Student and scholarship management workspace</p>
-              </footer>
-            </div>
+              <section className="section" id="register">
+                <div className="section-head">
+                  <div className="section-caption">
+                    <span className="cap">
+                      <b>03</b> — Manage records
+                    </span>
+                  </div>
+                  <h2 className="h2">
+                    Add to the
+                    <br />
+                    catalogue.
+                  </h2>
+                  <p className="section-note">
+                    Two records drive everything: a student profile to score, and a scholarship
+                    with the rules to score against.
+                  </p>
+                </div>
+
+                <div className="accordion">
+                  <div className={'acc-item' + (openPanel === 'student' ? ' is-open' : '')}>
+                    <button
+                      type="button"
+                      className="acc-head"
+                      onClick={() => setOpenPanel(openPanel === 'student' ? '' : 'student')}
+                      aria-expanded={openPanel === 'student'}
+                      aria-controls="panel-student"
+                    >
+                      <span className="cap acc-index">01</span>
+                      <span className="acc-title">Register student</span>
+                      <span className="acc-meta">
+                        Create a profile for eligibility checks
+                      </span>
+                      <span className="acc-plus" aria-hidden="true">
+                        <i></i>
+                        <i></i>
+                      </span>
+                    </button>
+                    <div className="acc-body" id="panel-student">
+                      <div className="acc-body-inner">
+                        <div className="acc-content">
+                          <form onSubmit={handleCreateStudent}>
+                            <div className="form-grid">
+                              <div className="field">
+                                <label htmlFor="student-phone">Phone number</label>
+                                <input
+                                  id="student-phone"
+                                  type="tel"
+                                  value={newStudent.phone}
+                                  onChange={(e) =>
+                                    setNewStudent({ ...newStudent, phone: e.target.value })
+                                  }
+                                  required
+                                  placeholder="e.g., 9876543210"
+                                />
+                              </div>
+                              <div className="field">
+                                <label htmlFor="student-name">Full name</label>
+                                <input
+                                  id="student-name"
+                                  type="text"
+                                  value={newStudent.name}
+                                  onChange={(e) =>
+                                    setNewStudent({ ...newStudent, name: e.target.value })
+                                  }
+                                  required
+                                  placeholder="e.g., Ravi Kumar"
+                                />
+                              </div>
+                              <div className="field field--full">
+                                <label htmlFor="student-school">School / college</label>
+                                <input
+                                  id="student-school"
+                                  type="text"
+                                  value={newStudent.school}
+                                  onChange={(e) =>
+                                    setNewStudent({ ...newStudent, school: e.target.value })
+                                  }
+                                  placeholder="e.g., XYZ College"
+                                />
+                              </div>
+                              <div className="field">
+                                <label htmlFor="student-degree">Degree / class</label>
+                                <input
+                                  id="student-degree"
+                                  type="text"
+                                  value={newStudent.degree}
+                                  onChange={(e) =>
+                                    setNewStudent({ ...newStudent, degree: e.target.value })
+                                  }
+                                  placeholder="e.g., B.Tech, 12th, 10th"
+                                />
+                              </div>
+                              <div className="field">
+                                <label htmlFor="student-year">Year</label>
+                                <input
+                                  id="student-year"
+                                  type="number"
+                                  value={newStudent.year}
+                                  onChange={(e) =>
+                                    setNewStudent({
+                                      ...newStudent,
+                                      year: parseInt(e.target.value) || 0
+                                    })
+                                  }
+                                />
+                              </div>
+                              <div className="field">
+                                <label htmlFor="student-income">Annual income (₹)</label>
+                                <input
+                                  id="student-income"
+                                  type="number"
+                                  min="0"
+                                  value={newStudent.annual_income}
+                                  onChange={(e) =>
+                                    setNewStudent({
+                                      ...newStudent,
+                                      annual_income: parseFloat(e.target.value) || 0
+                                    })
+                                  }
+                                />
+                              </div>
+                              <div className="field field--select">
+                                <label htmlFor="student-category">Category</label>
+                                <select
+                                  id="student-category"
+                                  value={newStudent.category}
+                                  onChange={(e) =>
+                                    setNewStudent({ ...newStudent, category: e.target.value })
+                                  }
+                                >
+                                  <option value="GENERAL">General</option>
+                                  <option value="GENERAL_GIRLS">General Girls</option>
+                                  <option value="SC">SC</option>
+                                  <option value="ST">ST</option>
+                                  <option value="OBC">OBC</option>
+                                  <option value="SOCIAL_SC">Social SC</option>
+                                  <option value="SOCIAL_PWD">PWD</option>
+                                </select>
+                              </div>
+                              <div className="field field--full">
+                                <label htmlFor="student-disability">Disability percentage (%)</label>
+                                <input
+                                  id="student-disability"
+                                  type="number"
+                                  min="0"
+                                  max="100"
+                                  value={newStudent.disability_pct}
+                                  onChange={(e) =>
+                                    setNewStudent({
+                                      ...newStudent,
+                                      disability_pct: parseInt(e.target.value) || 0
+                                    })
+                                  }
+                                />
+                              </div>
+                            </div>
+                            <button type="submit" className="btn-solid" disabled={loading}>
+                              {loading ? 'Registering…' : 'Register student'} <i>↗</i>
+                            </button>
+                          </form>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className={'acc-item' + (openPanel === 'scholarship' ? ' is-open' : '')}>
+                    <button
+                      type="button"
+                      className="acc-head"
+                      onClick={() =>
+                        setOpenPanel(openPanel === 'scholarship' ? '' : 'scholarship')
+                      }
+                      aria-expanded={openPanel === 'scholarship'}
+                      aria-controls="panel-scholarship"
+                    >
+                      <span className="cap acc-index">02</span>
+                      <span className="acc-title">Add scholarship</span>
+                      <span className="acc-meta">Extend the catalogue with a new scheme</span>
+                      <span className="acc-plus" aria-hidden="true">
+                        <i></i>
+                        <i></i>
+                      </span>
+                    </button>
+                    <div className="acc-body" id="panel-scholarship">
+                      <div className="acc-body-inner">
+                        <div className="acc-content">
+                          <form onSubmit={handleCreateScholarship}>
+                            <div className="form-grid">
+                              <div className="field field--full">
+                                <label htmlFor="scholarship-name">Scholarship name</label>
+                                <input
+                                  id="scholarship-name"
+                                  type="text"
+                                  value={newScholarship.name}
+                                  onChange={(e) =>
+                                    setNewScholarship({
+                                      ...newScholarship,
+                                      name: e.target.value
+                                    })
+                                  }
+                                  required
+                                  placeholder="e.g., Central Sector Scheme"
+                                />
+                              </div>
+                              <div className="field field--full">
+                                <label htmlFor="scholarship-org">Organization</label>
+                                <input
+                                  id="scholarship-org"
+                                  type="text"
+                                  value={newScholarship.org}
+                                  onChange={(e) =>
+                                    setNewScholarship({ ...newScholarship, org: e.target.value })
+                                  }
+                                  required
+                                  placeholder="e.g., MHRD / AICTE"
+                                />
+                              </div>
+                              <div className="field field--select">
+                                <label htmlFor="scholarship-category">Category</label>
+                                <select
+                                  id="scholarship-category"
+                                  value={newScholarship.category}
+                                  onChange={(e) =>
+                                    setNewScholarship({
+                                      ...newScholarship,
+                                      category: e.target.value
+                                    })
+                                  }
+                                >
+                                  <option value="CENTRAL_GENERAL">Central General</option>
+                                  <option value="STATE_GENERAL">State General</option>
+                                  <option value="GENERAL_GIRLS">General Girls</option>
+                                  <option value="SOCIAL_SC">Social SC</option>
+                                  <option value="SOCIAL_ST">Social ST</option>
+                                  <option value="SOCIAL_PWD">PWD</option>
+                                  <option value="SCIENCE_RESEARCH">Science Research</option>
+                                </select>
+                              </div>
+                              <div className="field">
+                                <label htmlFor="scholarship-deadline">Deadline</label>
+                                <input
+                                  id="scholarship-deadline"
+                                  type="date"
+                                  value={newScholarship.deadline}
+                                  onChange={(e) =>
+                                    setNewScholarship({
+                                      ...newScholarship,
+                                      deadline: e.target.value
+                                    })
+                                  }
+                                />
+                              </div>
+                              <div className="field field--full">
+                                <label htmlFor="scholarship-criteria">Eligibility criteria</label>
+                                <textarea
+                                  id="scholarship-criteria"
+                                  value={newScholarship.eligibility_criteria}
+                                  onChange={(e) =>
+                                    setNewScholarship({
+                                      ...newScholarship,
+                                      eligibility_criteria: e.target.value
+                                    })
+                                  }
+                                  rows="3"
+                                  placeholder="e.g., Class 12 pass. Min 80% aggregate. Family annual income < INR 4.5 lakh."
+                                />
+                              </div>
+                              <div className="field field--full">
+                                <label htmlFor="scholarship-documents">Documents required</label>
+                                <input
+                                  id="scholarship-documents"
+                                  type="text"
+                                  value={newScholarship.documents}
+                                  onChange={(e) =>
+                                    setNewScholarship({
+                                      ...newScholarship,
+                                      documents: e.target.value
+                                    })
+                                  }
+                                  placeholder="e.g., income_certificate, marksheets, etc."
+                                />
+                              </div>
+                              <div className="field field--full">
+                                <label htmlFor="scholarship-url">Website URL</label>
+                                <input
+                                  id="scholarship-url"
+                                  type="url"
+                                  value={newScholarship.url}
+                                  onChange={(e) =>
+                                    setNewScholarship({ ...newScholarship, url: e.target.value })
+                                  }
+                                  placeholder="e.g., https://scholarships.gov.in"
+                                />
+                              </div>
+                            </div>
+                            <button type="submit" className="btn-solid" disabled={loading}>
+                              {loading ? 'Adding…' : 'Add scholarship'} <i>↗</i>
+                            </button>
+                          </form>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section className="section" id="match">
+                <div className="section-head">
+                  <div className="section-caption">
+                    <span className="cap">
+                      <b>04</b> — Eligibility engine
+                    </span>
+                  </div>
+                  <h2 className="h2">
+                    Match a
+                    <br />
+                    profile.
+                  </h2>
+                  <p className="section-note">
+                    Select a registered student and run the engine. Results return ranked by
+                    eligibility score, with the scheme's own rules attached.
+                  </p>
+                </div>
+
+                {students.length === 0 ? (
+                  <div className="empty">
+                    <span className="empty-index">00</span>
+                    <p>No student profiles yet. Register a student above to run a match.</p>
+                  </div>
+                ) : (
+                  <div className="match-controls">
+                    <div className="field field--select">
+                      <label htmlFor="student-select">Select student</label>
+                      <select
+                        id="student-select"
+                        value={selectedStudent}
+                        onChange={(e) => setSelectedStudent(e.target.value)}
+                      >
+                        <option value="">— Select a student —</option>
+                        {students.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.name} ({s.phone})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn-solid"
+                      onClick={getRecommendations}
+                      disabled={loading || !selectedStudent}
+                    >
+                      {loading ? 'Checking…' : 'Get recommendations'} <i>↗</i>
+                    </button>
+                  </div>
+                )}
+
+                {recommendations.length === 0 ? (
+                  <div className="empty">
+                    <span className="empty-index">—</span>
+                    <p>
+                      Nothing ranked yet. Choose a student, run the engine, and the strongest
+                      matches will appear here in order.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="rank-list">
+                    {recommendations.map((rec, idx) => {
+                      const details = rec.details || {};
+                      const score = Math.round(rec.score || 0);
+                      return (
+                        <article
+                          key={idx}
+                          className="rank-row"
+                          data-reveal
+                          style={{ '--i': Math.min(idx, 6) }}
+                        >
+                          <span className="cap rank-num">{pad2(idx + 1)}</span>
+                          <div className="rank-main">
+                            <h3 className="rank-name">{details.name || 'Scholarship'}</h3>
+                            <div className="rank-meta">
+                              {[details.org, details.deadline, (details.category || '').replace(/_/g, ' ')]
+                                .filter(Boolean)
+                                .join(' · ')}
+                            </div>
+                            {details.eligibility_criteria && (
+                              <p className="rank-criteria">{details.eligibility_criteria}</p>
+                            )}
+                            <div className="score-bar" style={{ '--w': score + '%' }}>
+                              <span></span>
+                            </div>
+                            <div className="rank-meta">{getScoreLabel(score)}</div>
+                          </div>
+                          <div className="rank-score">
+                            {score}
+                            <em>%</em>
+                          </div>
+                          {details.url ? (
+                            <a
+                              className="rank-link"
+                              href={details.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              aria-label={'Open ' + (details.name || 'scholarship')}
+                            >
+                              ↗
+                            </a>
+                          ) : (
+                            <span className="rank-link" aria-hidden="true">
+                              ↗
+                            </span>
+                          )}
+                        </article>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+            </main>
+
+            <footer className="site-footer">
+              <p className="footer-big">
+                <span className="line-mask" style={{ '--d': 0 }}>
+                  <span>Register.</span>
+                </span>
+                <span className="line-mask" style={{ '--d': 1 }}>
+                  <span>Match. Apply.</span>
+                </span>
+              </p>
+
+              <div className="footer-meta">
+                <div>
+                  <span className="cap">Workspace</span>
+                  <p>Student and scholarship management</p>
+                </div>
+                <div>
+                  <span className="cap">Records</span>
+                  <p>
+                    {pad2(students.length)} students / {pad2(scholarships.length)} schemes
+                  </p>
+                </div>
+                <div>
+                  <span className="cap">Sections</span>
+                  <p>Overview / Index / Register / Match</p>
+                </div>
+                <div>
+                  <span className="cap">Source</span>
+                  <a href="https://github.com/jaynagda06/-Scholarship-Eligibility-Assistant" target="_blank" rel="noreferrer">
+                    GitHub ↗
+                  </a>
+                </div>
+              </div>
+
+              <div className="footer-legal">
+                <span>Scholarship Eligibility Assistant</span>
+                <span>Eligibility scoring is advisory, not an award decision.</span>
+              </div>
+            </footer>
+
+            <nav className="section-nav" aria-label="Section navigation">
+              {SECTIONS.map((s) => (
+                <a
+                  key={s.id}
+                  href={'#' + s.id}
+                  className={activeSection === s.id ? 'is-active' : ''}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    scrollToId(s.id);
+                  }}
+                >
+                  {s.label} <i></i>
+                </a>
+              ))}
+            </nav>
+
+            <button
+              type="button"
+              className="invert-btn"
+              onClick={toggleInvert}
+              aria-pressed={inverted}
+            >
+              <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <circle cx="8" cy="8" r="6.5" stroke="currentColor" />
+                <path d="M8 1.5A6.5 6.5 0 0 1 8 14.5Z" fill="currentColor" />
+              </svg>
+              <span style={{ display: 'flex', flexDirection: 'column' }}>
+                {inverted ? 'Light' : 'Invert'}
+                <i className="underline"></i>
+              </span>
+            </button>
           </div>
         );
       }
