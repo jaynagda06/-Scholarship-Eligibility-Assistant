@@ -82,6 +82,9 @@ Requests to `/api/*` go to the backend; everything else goes to the frontend.
 5. No environment variables are required.
 6. Click **Deploy**.
 
+Here is the link: https://scholarship-eligibility-assistant.vercel.app/
+
+
 ### Notes
 
 - On Vercel the SQLite database lives in `/tmp` (the only writable path) and is
